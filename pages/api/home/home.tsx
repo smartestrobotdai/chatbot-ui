@@ -79,7 +79,7 @@ const Home = ({
   const { data, error, refetch } = useQuery(
     ['GetModels', apiKey, serverSideApiKeyIsSet],
     ({ signal }) => {
-      if (!apiKey && !serverSideApiKeyIsSet) return null;
+      //if (!apiKey && !serverSideApiKeyIsSet) return null;
 
       return getModels(
         {
@@ -412,6 +412,8 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
   if (googleApiKey && googleCSEId) {
     serverSidePluginKeysSet = true;
   }
+
+  console.log('openaikey',process.env.OPENAI_API_KEY)
 
   return {
     props: {

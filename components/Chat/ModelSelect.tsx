@@ -7,7 +7,7 @@ import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
 
-export const ModelSelect = () => {
+export const ModelSelect = ({disabled = false}) => {
   const { t } = useTranslation('chat');
 
   const {
@@ -17,6 +17,7 @@ export const ModelSelect = () => {
   } = useContext(HomeContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    // to check if apikey is set or serverSideApiKeyisSet is true
     selectedConversation &&
       handleUpdateConversation(selectedConversation, {
         key: 'model',
@@ -37,6 +38,7 @@ export const ModelSelect = () => {
           placeholder={t('Select a model') || ''}
           value={selectedConversation?.model?.id || defaultModelId}
           onChange={handleChange}
+          disabled={disabled}
         >
           {models.map((model) => (
             <option
