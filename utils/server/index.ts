@@ -1,7 +1,7 @@
 import { Message } from '@/types/chat';
 import { OpenAIModel } from '@/types/openai';
 
-import { AZURE_DEPLOYMENT_ID, OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '../app/const';
+import { AZURE_DEPLOYMENT_ID, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '../app/const';
 
 import {
   ParsedEvent,
@@ -10,7 +10,8 @@ import {
 } from 'eventsource-parser';
 
 import { is_llama } from '@/types/openai';
-import { LLAMA_API_HOST, LLAMA_STREAM_MODE } from '../app/const';
+import { LLAMA_STREAM_MODE } from '../app/const';
+import { LLM_PROXY_HOST } from '../app/const';
 
 export class OpenAIError extends Error {
   type: string;
@@ -33,13 +34,15 @@ export const OpenAIStream = async (
   key: string,
   messages: Message[],
 ) => {
-  let url = `${OPENAI_API_HOST}/v1/chat/completions`;
-  if (OPENAI_API_TYPE === 'azure') {
-    url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
-  }
-  if (is_llama(model.id)) {
-    url = `${LLAMA_API_HOST}/v1/chat/completions`;
-  }
+  // let url = `${OPENAI_API_HOST}/v1/chat/completions`;
+  // if (OPENAI_API_TYPE === 'azure') {
+  //   url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
+  // }
+  // if (is_llama(model.id)) {
+  //   url = `${LLAMA_API_HOST}/v1/chat/completions`;
+  // }
+
+  let url = `${LLM_PROXY_HOST}/v1/chat/completions`;
   const streaming = !is_llama(model.id) || (LLAMA_STREAM_MODE === '1');
   const res = await fetch(url, {
     headers: {

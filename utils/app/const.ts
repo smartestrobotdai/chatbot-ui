@@ -3,7 +3,8 @@ export const DEFAULT_SYSTEM_PROMPT =
   "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully. Respond using markdown.";
 
 export const OPENAI_API_HOST =
-  process.env.OPENAI_API_HOST || 'https://api.openai.com';
+  //process.env.OPENAI_API_HOST || 'https://api.openai.com';
+  process.env.OPENAI_API_HOST || 'http://127.0.0.1:5000';
 
 export const DEFAULT_TEMPERATURE =
   parseFloat(process.env.NEXT_PUBLIC_DEFAULT_TEMPERATURE || "1");
@@ -21,7 +22,10 @@ export const AZURE_DEPLOYMENT_ID =
   process.env.AZURE_DEPLOYMENT_ID || '';
 
 export const LLAMA_API_HOST =
-  process.env.LLAMA_API_HOST || 'http://127.0.0.1:8000';
+  //process.env.LLAMA_API_HOST || 'http://127.0.0.1:8000';
+  process.env.LLAMA_API_HOST || 'http://127.0.0.1:5000';
 
 export const LLAMA_STREAM_MODE =
   process.env.LLAMA_STREAM_MODE || '1';
+
+export const LLM_PROXY_HOST = "http://127.0.0.1:5000"
