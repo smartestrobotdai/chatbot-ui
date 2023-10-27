@@ -28,6 +28,8 @@ export const TemperatureSlider: FC<Props> = ({
     setTemperature(newValue);
     onChangeTemperature(newValue);
   };
+  console.log('temperature', temperature)
+  console.log(typeof temperature)
 
   return (
     <div className="flex flex-col">

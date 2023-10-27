@@ -33,6 +33,7 @@ const Folder = ({
   handleDrop,
   folderComponent,
 }: Props) => {
+  console.log('Folder, currentFolder.id', currentFolder.id)
   const { handleDeleteFolder, handleUpdateFolder } = useContext(HomeContext);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -90,6 +91,8 @@ const Folder = ({
       setIsOpen(false);
     }
   }, [searchTerm]);
+
+  const isPreDefinedFolder = () => currentFolder.id === 'predefined-conversations'
 
   return (
     <>
@@ -164,13 +167,14 @@ const Folder = ({
         {!isDeleting && !isRenaming && (
           <div className="absolute right-1 z-10 flex text-gray-300">
             <SidebarActionButton
+              
               handleClick={(e) => {
                 e.stopPropagation();
                 setIsRenaming(true);
                 setRenameValue(currentFolder.name);
               }}
             >
-              <IconPencil size={18} />
+            <>{!isPreDefinedFolder() && <IconPencil size={18}/>}</>
             </SidebarActionButton>
             <SidebarActionButton
               handleClick={(e) => {
@@ -178,7 +182,7 @@ const Folder = ({
                 setIsDeleting(true);
               }}
             >
-              <IconTrash size={18} />
+            <>{!isPreDefinedFolder() &&  <IconTrash size={18} />}</>
             </SidebarActionButton>
           </div>
         )}

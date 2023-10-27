@@ -8,6 +8,7 @@ import wasm from '../../node_modules/@dqbd/tiktoken/lite/tiktoken_bg.wasm?module
 
 import tiktokenModel from '@dqbd/tiktoken/encoders/cl100k_base.json';
 import { Tiktoken, init } from '@dqbd/tiktoken/lite/init';
+import { M_PLUS_1 } from 'next/font/google';
 
 export const config = {
   runtime: 'edge',
@@ -15,44 +16,31 @@ export const config = {
 
 const handler = async (req: Request): Promise<Response> => {
   try {
-    const { model, messages, key, prompt, temperature } = (await req.json()) as ChatBody;
+    const requestUrl = new URL(req.url)
+    const serviceId = requestUrl.searchParams.get('serviceId');
+    const clientId = requestUrl.searchParams.get('clientId');
+    const shared = requestUrl.searchParams.get('shared');
+    if (!serviceId) {
+      return new Response('Error', { status: 400 });
+    }
 
-    await init((imports) => WebAssembly.instantiate(wasm, imports));
-    const encoding = new Tiktoken(
-      tiktokenModel.bpe_ranks,
-      tiktokenModel.special_tokens,
-      tiktokenModel.pat_str,
-    );
-
+    if (!clientId) {
+      return new Response('Error', { status: 400 });
+    }
+    const { model, temperature, messages, key, prompt } = (await req.json()) as ChatBody;
     let promptToSend = prompt;
     if (!promptToSend) {
       promptToSend = DEFAULT_SYSTEM_PROMPT;
     }
-
-    let temperatureToUse = temperature;
-    if (temperatureToUse == null) {
-      temperatureToUse = DEFAULT_TEMPERATURE;
+    console.log('messages', messages)
+    // get the last message
+    const lastMessage = messages[messages.length - 1];
+    const query = lastMessage.content
+    if (!query) {
+      return new Response('Error', { status: 400 });
     }
 
-    const prompt_tokens = encoding.encode(promptToSend);
-
-    let tokenCount = prompt_tokens.length;
-    let messagesToSend: Message[] = [];
-
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
-      const tokens = encoding.encode(message.content);
-
-      if (tokenCount + tokens.length + 1000 > model.tokenLimit) {
-        break;
-      }
-      tokenCount += tokens.length;
-      messagesToSend = [message, ...messagesToSend];
-    }
-
-    encoding.free();
-
-    const stream = await OpenAIStream(model, promptToSend, temperatureToUse, key, messagesToSend);
+    const stream = await OpenAIStream(messages.length === 1, shared==='true', model, prompt, temperature, key, serviceId, clientId, query);
 
     return new Response(stream);
   } catch (error) {

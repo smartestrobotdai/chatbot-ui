@@ -53,7 +53,7 @@ const Home = ({
   defaultModelId,
 }: Props) => {
   const { t } = useTranslation('chat');
-  const { getModels } = useApiService();
+  const { getModels, getConversations } = useApiService();
   const { getModelsError } = useErrorService();
   const [initialRender, setInitialRender] = useState<boolean>(true);
 
@@ -73,7 +73,7 @@ const Home = ({
     },
     dispatch,
   } = contextValue;
-
+  
   const stopConversationRef = useRef<boolean>(false);
 
   const { data, error, refetch } = useQuery(
@@ -101,6 +101,55 @@ const Home = ({
 
   // FETCH MODELS ----------------------------------------------
 
+
+  const { data: data2, error: error2, refetch: refetch2 } = useQuery(
+    ['GetConversations', apiKey, serverSideApiKeyIsSet],
+    ({ signal }) => {
+      //if (!apiKey && !serverSideApiKeyIsSet) return null;
+
+      return getConversations(
+        {
+          key: apiKey,
+        },
+        signal,
+      );
+    },
+    { enabled: true, refetchOnMount: false },
+  );
+  
+  const combineConversations = (conv1: Conversation[], conv2: any) => {
+    function getEnumKeyByValue(value: string): keyof typeof OpenAIModelID | undefined {
+      return Object.keys(OpenAIModelID).find(key => OpenAIModelID[key as keyof typeof OpenAIModelID] === value) as keyof typeof OpenAIModelID | undefined;
+    }
+
+    conv2.forEach((conv: Conversation) => {
+      const model_id_str = conv.model as unknown as string
+      const model_key = getEnumKeyByValue(model_id_str);
+      conv.temperature = Number(conv.temperature as unknown as string);
+      conv.folderId = 'predefined-conversations'
+      if (model_key) {
+        const model_id = OpenAIModelID[model_key]
+        conv.model = {id: model_id_str, 
+          name: OpenAIModels[model_id].name,
+          maxLength: OpenAIModels[model_id].maxLength,
+          tokenLimit: OpenAIModels[model_id].tokenLimit
+        }
+      }
+    })
+
+    console.log('conv2:', conv2)
+    const combined = [...conv1, ...conv2]
+    const unique = combined.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
+    console.log('combined:', unique)
+    return unique
+  }
+
+  useEffect(() => {
+    console.log('data2 changed', data2)
+    console.log('current conversation:', conversations)
+    if (data2) dispatch({ field: 'conversations', value: combineConversations(conversations, data2.data)});
+  }, [data2, dispatch]);
+
   const handleSelectConversation = (conversation: Conversation) => {
     dispatch({
       field: 'selectedConversation',
@@ -113,6 +162,7 @@ const Home = ({
   // FOLDER OPERATIONS  --------------------------------------------
 
   const handleCreateFolder = (name: string, type: FolderType) => {
+    console.log('handleCreateFolder', name, type)
     const newFolder: FolderInterface = {
       id: uuidv4(),
       name,
@@ -178,11 +228,26 @@ const Home = ({
 
   // CONVERSATION OPERATIONS  --------------------------------------------
 
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
     const lastConversation = conversations[conversations.length - 1];
 
+    // TODO: send the request to the server and get the conversation id
+    dispatch({ field: 'loading', value: true });
+    const endpoint = 'api/services'
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          "model": "llama-2-13b",
+        }),
+      })
+    const data = await response.json()
+    console.log('data:', data)
+    const conversationId = data.service_id
     const newConversation: Conversation = {
-      id: uuidv4(),
+      id: conversationId,
       name: t('New Conversation'),
       messages: [],
       model: lastConversation?.model || {
@@ -194,6 +259,7 @@ const Home = ({
       prompt: DEFAULT_SYSTEM_PROMPT,
       temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
       folderId: null,
+      shared: false,
     };
 
     const updatedConversations = [...conversations, newConversation];
@@ -291,6 +357,16 @@ const Home = ({
     if (showPromptbar) {
       dispatch({ field: 'showPromptbar', value: showPromptbar === 'true' });
     }
+    
+    const foldersStorage = localStorage.getItem('folders');
+    // check if foldersStorage contains predefined-conversations
+    // if not, add it
+    const foldersStorageParsed: FolderInterface[] = foldersStorage?JSON.parse(foldersStorage):[]
+    const predefinedFolder: FolderInterface = {id: 'predefined-conversations', name: 'Shared conversations', type: 'chat'}
+    if (!foldersStorageParsed.find((folder) => folder.id === 'predefined-conversations')) {
+      foldersStorageParsed.push(predefinedFolder)
+      localStorage.setItem('folders', JSON.stringify(foldersStorageParsed));
+    }
 
     const folders = localStorage.getItem('folders');
     if (folders) {
@@ -302,6 +378,8 @@ const Home = ({
       dispatch({ field: 'prompts', value: JSON.parse(prompts) });
     }
 
+    console.log('preparing to load conversations from storage')
+    console.log('conversations:', conversations)
     const conversationHistory = localStorage.getItem('conversationHistory');
     if (conversationHistory) {
       const parsedConversationHistory: Conversation[] =
@@ -309,7 +387,8 @@ const Home = ({
       const cleanedConversationHistory = cleanConversationHistory(
         parsedConversationHistory,
       );
-
+      
+      console.log('cleanedConversationHistory:', cleanedConversationHistory)
       dispatch({ field: 'conversations', value: cleanedConversationHistory });
     }
 
@@ -413,7 +492,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
     serverSidePluginKeysSet = true;
   }
 
-  console.log('openaikey',process.env.OPENAI_API_KEY)
+  
 
   return {
     props: {

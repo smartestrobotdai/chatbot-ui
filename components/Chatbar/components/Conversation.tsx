@@ -100,6 +100,8 @@ export const ConversationComponent = ({ conversation }: Props) => {
     }
   }, [isRenaming, isDeleting]);
 
+
+  const isInPreDefinedFolder = () => selectedConversation?.folderId === 'predefined-conversations'
   return (
     <div className="relative flex items-center">
       {isRenaming && selectedConversation?.id === conversation.id ? (
@@ -156,10 +158,10 @@ export const ConversationComponent = ({ conversation }: Props) => {
         !isRenaming && (
           <div className="absolute right-1 z-10 flex text-gray-300">
             <SidebarActionButton handleClick={handleOpenRenameModal}>
-              <IconPencil size={18} />
+            <>{!isInPreDefinedFolder()  && <IconPencil size={18} />}</>
             </SidebarActionButton>
             <SidebarActionButton handleClick={handleOpenDeleteModal}>
-              <IconTrash size={18} />
+            <>{!isInPreDefinedFolder() && <IconTrash size={18} />} </>
             </SidebarActionButton>
           </div>
         )}
