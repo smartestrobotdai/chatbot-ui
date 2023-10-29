@@ -15,7 +15,7 @@ import {
   cleanConversationHistory,
   cleanSelectedConversation,
 } from '@/utils/app/clean';
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE, DEFAULT_TOP_P } from '@/utils/app/const';
 import {
   saveConversation,
   saveConversations,
@@ -28,7 +28,7 @@ import { getSettings } from '@/utils/app/settings';
 import { Conversation } from '@/types/chat';
 import { KeyValuePair } from '@/types/data';
 import { FolderInterface, FolderType } from '@/types/folder';
-import { OpenAIModelID, OpenAIModels, fallbackModelID } from '@/types/openai';
+import { OpenAIModelID, OpenAIModels, fallbackEmbeddingModelID, fallbackModelID } from '@/types/openai';
 import { Prompt } from '@/types/prompt';
 
 import { Chat } from '@/components/Chat/Chat';
@@ -45,12 +45,14 @@ interface Props {
   serverSideApiKeyIsSet: boolean;
   serverSidePluginKeysSet: boolean;
   defaultModelId: OpenAIModelID;
+  defaultEmbeddingModelId: OpenAIModelID;
 }
 
 const Home = ({
   serverSideApiKeyIsSet,
   serverSidePluginKeysSet,
   defaultModelId,
+  defaultEmbeddingModelId,
 }: Props) => {
   const { t } = useTranslation('chat');
   const { getModels, getConversations } = useApiService();
@@ -126,13 +128,16 @@ const Home = ({
       const model_id_str = conv.model as unknown as string
       const model_key = getEnumKeyByValue(model_id_str);
       conv.temperature = Number(conv.temperature as unknown as string);
+      conv.topP = Number(conv.topP as unknown as string);
+
       conv.folderId = 'predefined-conversations'
       if (model_key) {
         const model_id = OpenAIModelID[model_key]
         conv.model = {id: model_id_str, 
           name: OpenAIModels[model_id].name,
           maxLength: OpenAIModels[model_id].maxLength,
-          tokenLimit: OpenAIModels[model_id].tokenLimit
+          tokenLimit: OpenAIModels[model_id].tokenLimit,
+          type: 'chat'
         }
       }
     })
@@ -147,7 +152,7 @@ const Home = ({
   useEffect(() => {
     console.log('data2 changed', data2)
     console.log('current conversation:', conversations)
-    if (data2) dispatch({ field: 'conversations', value: combineConversations(conversations, data2.data)});
+    if (data2) dispatch({ field: 'conversations', value: combineConversations(conversations, data2)});
   }, [data2, dispatch]);
 
   const handleSelectConversation = (conversation: Conversation) => {
@@ -239,13 +244,13 @@ const Home = ({
       headers: {
         'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          "model": "llama-2-13b",
-        }),
+        body: JSON.stringify({}),
       })
     const data = await response.json()
     console.log('data:', data)
     const conversationId = data.service_id
+    console.log('defaultModelId', defaultModelId)
+    console.log('defaultEmbeddingModelId', defaultEmbeddingModelId)
     const newConversation: Conversation = {
       id: conversationId,
       name: t('New Conversation'),
@@ -256,8 +261,18 @@ const Home = ({
         maxLength: OpenAIModels[defaultModelId].maxLength,
         tokenLimit: OpenAIModels[defaultModelId].tokenLimit,
       },
+
+      embeddingModel: lastConversation?.embeddingModel || {
+        id: OpenAIModels[defaultEmbeddingModelId].id,
+        name: OpenAIModels[defaultEmbeddingModelId].name,
+        maxLength: OpenAIModels[defaultEmbeddingModelId].maxLength,
+        tokenLimit: OpenAIModels[defaultEmbeddingModelId].tokenLimit,
+      },
+      topP: lastConversation?.topP ?? Number(DEFAULT_TOP_P),
       prompt: DEFAULT_SYSTEM_PROMPT,
-      temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
+      // convert the string to number of temperature
+
+      temperature: lastConversation?.temperature ?? Number(DEFAULT_TEMPERATURE),
       folderId: null,
       shared: false,
     };
@@ -483,6 +498,13 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       process.env.DEFAULT_MODEL) ||
     fallbackModelID;
 
+  const defaultEmbeddingModelId =
+    (process.env.DEFAULT_EMBEDDING_MODEL &&
+      Object.values(OpenAIModelID).includes(
+        process.env.DEFAULT_EMBEDDING_MODEL as OpenAIModelID,
+      ) &&
+      process.env.DEFAULT_EMBEDDING_MODEL) ||
+      fallbackEmbeddingModelID;
   let serverSidePluginKeysSet = false;
 
   const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -492,12 +514,11 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
     serverSidePluginKeysSet = true;
   }
 
-  
-
   return {
     props: {
       serverSideApiKeyIsSet: !!process.env.OPENAI_API_KEY,
       defaultModelId,
+      defaultEmbeddingModelId,
       serverSidePluginKeysSet,
       ...(await serverSideTranslations(locale ?? 'en', [
         'common',

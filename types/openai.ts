@@ -5,6 +5,7 @@ export interface OpenAIModel {
   name: string;
   maxLength: number; // maximum length of a message
   tokenLimit: number;
+  type: string;
 }
 
 export enum OpenAIModelID {
@@ -12,11 +13,12 @@ export enum OpenAIModelID {
   GPT_3_5_AZ = 'gpt-35-turbo',
   GPT_4 = 'gpt-4',
   GPT_4_32K = 'gpt-4-32k',
-  LLAMA_2_13B = 'llama-2-13b'
+  ADA_002 = 'text-embedding-ada-002',
 }
 
 // in case the `DEFAULT_MODEL` environment variable is not set or set to an unsupported model
-export const fallbackModelID = OpenAIModelID.LLAMA_2_13B;
+export const fallbackModelID = OpenAIModelID.GPT_3_5;
+export const fallbackEmbeddingModelID = OpenAIModelID.ADA_002;
 
 export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
   [OpenAIModelID.GPT_3_5]: {
@@ -24,29 +26,34 @@ export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
     name: 'GPT-3.5',
     maxLength: 12000,
     tokenLimit: 4000,
+    type: 'chat'
   },
   [OpenAIModelID.GPT_3_5_AZ]: {
     id: OpenAIModelID.GPT_3_5_AZ,
     name: 'GPT-3.5',
     maxLength: 12000,
     tokenLimit: 4000,
+    type: 'chat'
   },
   [OpenAIModelID.GPT_4]: {
     id: OpenAIModelID.GPT_4,
     name: 'GPT-4',
     maxLength: 24000,
     tokenLimit: 8000,
+    type: 'chat'
   },
   [OpenAIModelID.GPT_4_32K]: {
     id: OpenAIModelID.GPT_4_32K,
     name: 'GPT-4-32K',
     maxLength: 96000,
     tokenLimit: 32000,
+    type: 'chat'
   },
-  [OpenAIModelID.LLAMA_2_13B]: {
-    id: OpenAIModelID.LLAMA_2_13B,
-    name: 'LLAMA-2-13B',
-    maxLength: 12000,
-    tokenLimit: 4000,
+  [OpenAIModelID.ADA_002]: {
+    id: OpenAIModelID.ADA_002,
+    name: 'TEXT-EMBEDDING-ADA-002',
+    maxLength: 96000,
+    tokenLimit: 32000,
+    type: 'text-embedding'
   },
 };

@@ -9,6 +9,7 @@ export type Role = 'assistant' | 'user';
 
 export interface ChatBody {
   model: OpenAIModel;
+  embeddingModel: OpenAIModel;
   messages: Message[];
   key: string;
   prompt: string;
@@ -20,8 +21,10 @@ export interface Conversation {
   name: string;
   messages: Message[];
   model: OpenAIModel;
+  embeddingModel: OpenAIModel;
   prompt: string;
   temperature: number;
+  topP: number;
   folderId: string | null;
   shared: boolean;
 }

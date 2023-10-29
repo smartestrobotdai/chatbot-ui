@@ -7,7 +7,7 @@ import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
 
-export const ModelSelect = ({disabled = false}) => {
+export const ModelSelect = ({disabled = false, type='chat', title='Model'}) => {
   const { t } = useTranslation('chat');
 
   const {
@@ -20,7 +20,7 @@ export const ModelSelect = ({disabled = false}) => {
     // to check if apikey is set or serverSideApiKeyisSet is true
     selectedConversation &&
       handleUpdateConversation(selectedConversation, {
-        key: 'model',
+        key: type==='chat' ? 'model':'embeddingModel',
         value: models.find(
           (model) => model.id === e.target.value,
         ) as OpenAIModel,
@@ -30,18 +30,19 @@ export const ModelSelect = ({disabled = false}) => {
   return (
     <div className="flex flex-col">
       <label className="mb-2 text-left text-neutral-700 dark:text-neutral-400">
-        {t('Model')}
+        {title}
       </label>
       <div className="w-full rounded-lg border border-neutral-200 bg-transparent pr-2 text-neutral-900 dark:border-neutral-600 dark:text-white">
         <select
           className="w-full bg-transparent p-2"
           placeholder={t('Select a model') || ''}
-          value={selectedConversation?.model?.id || defaultModelId}
+          value={type==='chat'?selectedConversation?.model?.id:selectedConversation?.embeddingModel?.id 
+            || defaultModelId}
           onChange={handleChange}
           disabled={disabled}
         >
           {models.map((model) => (
-            <option
+            model.type === type && <option
               key={model.id}
               value={model.id}
               className="dark:bg-[#343541] dark:text-white"

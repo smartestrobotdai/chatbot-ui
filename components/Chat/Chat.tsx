@@ -95,6 +95,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         homeDispatch({ field: 'messageIsStreaming', value: true });
         const chatBody: ChatBody = {
           model: updatedConversation.model,
+          embeddingModel: updatedConversation.embeddingModel,
           messages: updatedConversation.messages,
           key: apiKey,
           prompt: updatedConversation.prompt,
@@ -373,8 +374,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
                   {models.length >= 0 && (
                     <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600">
-                      <ModelSelect />
-
+                      <ModelSelect type='chat' title='Chat Model'/>
+                      <ModelSelect type='text-embedding' title='Embedding Model'/>
                       <SystemPrompt
                         conversation={selectedConversation}
                         prompts={prompts}
@@ -446,7 +447,30 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 {showSettings && (
                   <div className="flex flex-col space-y-10 md:mx-auto md:max-w-xl md:gap-6 md:py-3 md:pt-6 lg:max-w-2xl lg:px-0 xl:max-w-3xl">
                     <div className="flex h-full flex-col space-y-4 border-b border-neutral-200 p-4 dark:border-neutral-600 md:rounded-lg md:border">
-                      <ModelSelect />
+                    <ModelSelect type='chat' title='Chat Model' disabled={true}/>
+                      <ModelSelect type='text-embedding' title='Embedding Model' disabled={true}/>
+                      <SystemPrompt
+                        conversation={selectedConversation!}
+                        prompts={prompts}
+                        onChangePrompt={(prompt) =>
+                          handleUpdateConversation(selectedConversation!, {
+                            key: 'prompt',
+                            value: prompt,
+                          })
+                        }
+                        disabled={true}
+                      />
+
+                      <TemperatureSlider
+                        label={t('Temperature')}
+                        onChangeTemperature={(temperature) =>
+                          handleUpdateConversation(selectedConversation!, {
+                            key: 'temperature',
+                            value: temperature,
+                          })
+                        }
+                        disabled={true}
+                      />
                     </div>
                   </div>
                 )}

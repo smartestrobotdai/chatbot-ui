@@ -26,7 +26,8 @@ export class OpenAIError extends Error {
 export const OpenAIStream = async (
   firstMesaage: boolean,
   shared: boolean,
-  model: OpenAIModel, 
+  model: OpenAIModel,
+  embeddingModel: OpenAIModel,
   prompt: string, 
   temperature: number, 
   key: string,
@@ -34,16 +35,11 @@ export const OpenAIStream = async (
   clientId: string,
   query: string,
 ) => {
-  console.log('firstMesaage', firstMesaage)
-  console.log('shared', shared)
-  console.log('!shared', !shared)
-
-  console.log('firstMesaage && !shared', firstMesaage && !shared)
   if (firstMesaage && !shared) {
     // update the service if the conversation is not shared and this is the first message
     console.log('The first message, update the service')
     const url = `${OPENAI_API_HOST}/v1/services/${serviceId}`;
-    const payload = JSON.stringify({model: model.id, prompt, temperature})
+    const payload = JSON.stringify({model: model.id, "embedding-model": embeddingModel.id, prompt, temperature})
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -111,49 +107,24 @@ export const OpenAIStream = async (
 
   const stream = new ReadableStream({
     async start(controller) {
-      // const onParse = (event: ParsedEvent | ReconnectInterval) => {
-      //   if (event.type === 'event') {
-      //     const data = event.data;
-      //     // Check for known non-JSON messages first
-      //     if (data === "[DONE]") {
-      //       // Handle the [DONE] message accordingly
-      //       controller.close();
-      //       return;
-      //     }
-          
-      //     try {
-      //       console.log('data in parser:', data)
-      //       const json = JSON.parse(data);
-      //       console.log('json:', json)
-      //       if (json.choices[0].finish_reason != null) {
-      //         controller.close();
-      //         return;
-      //       }
-      //       const text = json.choices[0].delta.content;
-      //       console.log('text:', text)
-      //       const queue = encoder.encode(text);
-      //       controller.enqueue(queue);
-      //     } catch (e) {
-      //       controller.error(e);
-      //     }
-      //   }
-      // };
-
-      // const parser = createParser(onParse);
       let buffer = "";
       for await (const chunk of res.body as any) {
         
         buffer += decoder.decode(chunk);
         
         if (buffer.trim().endsWith("}")) {
-          buffer = buffer.replace(/\n/g, '');
+          //buffer = buffer.replace(/\n/g, '');
           buffer = buffer.replace(/data: /g, '');
 
           
-          const regex = /"content":\s*"((?:\\"|[^"])*)"/;
+          const regex = /"content":\s*"((?:\\"|[^"])*)"/g;
 
-          const match = buffer.match(regex);
-          if (match && match[1]) {
+          let match;
+          
+          console.log('buffer', buffer)
+          console.log('match', match)
+
+          while ((match = regex.exec(buffer)) !== null) {
             controller.enqueue(encoder.encode(match[1]));
           }
           

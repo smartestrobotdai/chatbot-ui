@@ -21,12 +21,14 @@ interface Props {
   conversation: Conversation;
   prompts: Prompt[];
   onChangePrompt: (prompt: string) => void;
+  disabled?: boolean;
 }
 
 export const SystemPrompt: FC<Props> = ({
   conversation,
   prompts,
   onChangePrompt,
+  disabled = false,
 }) => {
   const { t } = useTranslation('chat');
 
@@ -216,6 +218,7 @@ export const SystemPrompt: FC<Props> = ({
         rows={1}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        disabled={disabled}
       />
 
       {showPromptList && filteredPrompts.length > 0 && (

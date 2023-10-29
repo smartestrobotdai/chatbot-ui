@@ -33,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
     const data = await pythonBackendResponse.json();
 
     // Return the response back to the frontend
-    return new Response(JSON.stringify(data), {status: 200});
+    return new Response(JSON.stringify(data.data), {status: 200});
   } catch (error) {
     console.error(error);
     return new Response('Error', {status: 500});

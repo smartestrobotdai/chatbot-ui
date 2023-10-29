@@ -2,6 +2,9 @@ export const DEFAULT_SYSTEM_PROMPT =
   process.env.NEXT_PUBLIC_DEFAULT_SYSTEM_PROMPT ||
   "You are a large language model. Follow the user's instructions carefully. Respond as much as you can.";
 
+export const DEFAULT_TOP_P = 
+  process.env.DEFAULT_TOP_P || "0.9";
+
 export const OPENAI_API_HOST =
   process.env.OPENAI_API_HOST || 'https://api.openai.com';
 
