@@ -1,12 +1,17 @@
 import { useCallback } from 'react';
 
 import { useFetch } from '@/hooks/useFetch';
+import { getClientId } from '@/utils/app/settings';
 
 export interface GetModelsRequestProps {
   key: string;
 }
 
 export interface GetConversationsRequestProps {
+  key: string;
+}
+
+export interface ClearConversationsRequestProps {
   key: string;
 }
 
@@ -45,11 +50,7 @@ const useApiService = () => {
   const getConversations = useCallback(
     
     (params: GetConversationsRequestProps, signal?: AbortSignal) => {
-      let clientId = localStorage.getItem('clientId');
-      if (!clientId) {
-        clientId = Math.random().toString(36).substring(7);
-        localStorage.setItem('clientId', clientId);
-      }
+      let clientId = getClientId()
       return fetchService.get<GetConversationsRequestProps>(`/api/services?clientId=${clientId}`, {
         headers: {
           'Content-Type': 'application/json',

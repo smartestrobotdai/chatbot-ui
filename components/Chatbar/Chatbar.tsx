@@ -25,6 +25,9 @@ import ChatbarContext from './Chatbar.context';
 import { ChatbarInitialState, initialState } from './Chatbar.state';
 
 import { v4 as uuidv4 } from 'uuid';
+import useApiService from '@/services/useApiService';
+import { useQuery } from 'react-query';
+import { getClientId } from '@/utils/app/settings';
 
 export const Chatbar = () => {
   const { t } = useTranslation('sidebar');
@@ -34,7 +37,8 @@ export const Chatbar = () => {
   });
 
   const {
-    state: { conversations, showChatbar, defaultModelId, defaultEmbeddingModelId, folders, pluginKeys },
+    state: { conversations, apiKey, showChatbar, selectedConversation,
+      defaultModelId, defaultEmbeddingModelId, folders, pluginKeys },
     dispatch: homeDispatch,
     handleCreateFolder,
     handleNewConversation,
@@ -111,7 +115,21 @@ export const Chatbar = () => {
     window.location.reload();
   };
 
-  const handleClearConversations = () => {
+  const handleClearConversations = async () => {
+    homeDispatch({ field: 'loading', value: true });
+    // Send request to clear conversations
+    const url = `api/services?clientId=${getClientId()}`;
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        homeDispatch({ field: 'loading', value: false });
+        return
+      }
+    } catch (error) {
+      console.error('Error clearing chat history on server:', error);
+    }
     defaultModelId &&
       homeDispatch({
         field: 'selectedConversation',
@@ -126,18 +144,34 @@ export const Chatbar = () => {
         },
       });
 
-    homeDispatch({ field: 'conversations', value: [] });
+
+    console.log('current conversations', conversations)
+    homeDispatch({ field: 'conversations', value: conversations.filter((c) => c.folderId === 'predefined-conversations') });
 
     localStorage.removeItem('conversationHistory');
-    localStorage.removeItem('selectedConversation');
-
-    const updatedFolders = folders.filter((f) => f.type !== 'chat');
+    if (selectedConversation?.folderId !== 'predefined-conversations') {
+      localStorage.removeItem('selectedConversation');
+    }
+  
+    const updatedFolders = folders.filter((f) => f.type !== 'chat' || f.id === 'predefined-conversations');
 
     homeDispatch({ field: 'folders', value: updatedFolders });
     saveFolders(updatedFolders);
   };
 
-  const handleDeleteConversation = (conversation: Conversation) => {
+  const handleDeleteConversation = async (conversation: Conversation) => {
+    const serviceId = conversation.id
+    const clientId = getClientId()
+    const url = `api/services?serviceId=${serviceId}&clientId=${clientId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      console.log('Error deleting conversation on server:', response)
+      return
+    }
+
     const updatedConversations = conversations.filter(
       (c) => c.id !== conversation.id,
     );

@@ -9,6 +9,7 @@ import {
   createParser,
 } from 'eventsource-parser';
 
+
 export class OpenAIError extends Error {
   type: string;
   param: string;
@@ -32,13 +33,26 @@ export const OpenAIStream = async (
   temperature: number, 
   key: string,
   serviceId: string|null,
-  clientId: string,
+  clientId: string|null,
   query: string,
 ) => {
+  // printout all input parameters:
+  console.log('firstMesaage', firstMesaage)
+  console.log('shared', shared)
+  console.log('model', model)
+  console.log('embeddingModel', embeddingModel)
+  console.log('prompt', prompt)
+  console.log('temperature', temperature)
+  console.log('key', key)
+  console.log('serviceId', serviceId)
+  console.log('clientId', clientId)
+  console.log('query', query)
+
+
   if (firstMesaage && !shared) {
     // update the service if the conversation is not shared and this is the first message
     console.log('The first message, update the service')
-    const url = `${OPENAI_API_HOST}/v1/services/${serviceId}`;
+    const url = `${OPENAI_API_HOST}/v1/services/${serviceId}?clientId=${clientId}`;
     const payload = JSON.stringify({model: model.id, "embedding-model": embeddingModel.id, prompt, temperature})
     const response = await fetch(url, {
       method: 'PUT',
@@ -104,7 +118,7 @@ export const OpenAIStream = async (
       );
     }
   }
-
+  console.log('Readable:', ReadableStream.toString());
   const stream = new ReadableStream({
     async start(controller) {
       let buffer = "";
@@ -121,9 +135,7 @@ export const OpenAIStream = async (
 
           let match;
           
-          console.log('buffer', buffer)
-          console.log('match', match)
-
+          
           while ((match = regex.exec(buffer)) !== null) {
             controller.enqueue(encoder.encode(match[1]));
           }
@@ -131,9 +143,11 @@ export const OpenAIStream = async (
           buffer = "";
         }
       }
+      console.log('closed')
       controller.close();
     },
   });
 
+  console.log('stream returned from OpenAIStream', stream)
   return stream;
 };

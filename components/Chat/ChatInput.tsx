@@ -32,6 +32,7 @@ import { VariableModal } from './VariableModal';
 
 interface Props {
   onSend: (message: Message, plugin: Plugin | null) => void;
+  onEmbed: (files: File[]) => void;
   onRegenerate: () => void;
   onScrollDownClick: () => void;
   stopConversationRef: MutableRefObject<boolean>;
@@ -41,6 +42,7 @@ interface Props {
 
 export const ChatInput = ({
   onSend,
+  onEmbed,
   onRegenerate,
   onScrollDownClick,
   stopConversationRef,
@@ -89,7 +91,21 @@ export const ChatInput = ({
     updatePromptListVisibility(value);
   };
 
-  const handleEmbed = () => {}
+  const handleEmbed = () => {
+    // popup file dialog and ask the user to select one or more pdf files
+    console.log('handleEmbed')
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'application/pdf';
+    input.onchange = (e: any) => {
+      const files = e.target.files;
+      if (files) {
+        onEmbed(files)
+      }
+    }
+    input.click()
+  }
 
   const handleSend = () => {
     if (messageIsStreaming) {
@@ -314,14 +330,16 @@ export const ChatInput = ({
               />
             </div>
           )}
-          
-          <button
-            className="absolute left-8 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-            style={{ fontSize: '1.2rem', width: '24px', height: '24px' }}
-            title="Embed files"
-          >
-            <span>+</span>
-          </button>
+          {selectedConversation?.folderId !== 'predefined-conversations' && 
+            <button
+              className="absolute left-8 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+              style={{ fontSize: '1.2rem', width: '24px', height: '24px' }}
+              onClick={handleEmbed}
+              title="Embed files"
+            >
+              <span>+</span>
+            </button>
+          }
           <textarea
             ref={textareaRef}
             className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pr-16 pl-14 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-14"

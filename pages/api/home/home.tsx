@@ -23,12 +23,12 @@ import {
 } from '@/utils/app/conversation';
 import { saveFolders } from '@/utils/app/folders';
 import { savePrompts } from '@/utils/app/prompts';
-import { getSettings } from '@/utils/app/settings';
+import { getClientId, getSettings } from '@/utils/app/settings';
 
 import { Conversation } from '@/types/chat';
 import { KeyValuePair } from '@/types/data';
 import { FolderInterface, FolderType } from '@/types/folder';
-import { OpenAIModelID, OpenAIModels, fallbackEmbeddingModelID, fallbackModelID } from '@/types/openai';
+import { OpenAIModelID, OpenAIModel, OpenAIModels, fallbackEmbeddingModelID, fallbackModelID } from '@/types/openai';
 import { Prompt } from '@/types/prompt';
 
 import { Chat } from '@/components/Chat/Chat';
@@ -119,33 +119,51 @@ const Home = ({
     { enabled: true, refetchOnMount: false },
   );
   
-  const combineConversations = (conv1: Conversation[], conv2: any) => {
+  const combineConversations = (conv1: Conversation[], conv2_raw: any) => {
     function getEnumKeyByValue(value: string): keyof typeof OpenAIModelID | undefined {
       return Object.keys(OpenAIModelID).find(key => OpenAIModelID[key as keyof typeof OpenAIModelID] === value) as keyof typeof OpenAIModelID | undefined;
     }
 
-    conv2.forEach((conv: Conversation) => {
-      const model_id_str = conv.model as unknown as string
-      const model_key = getEnumKeyByValue(model_id_str);
-      conv.temperature = Number(conv.temperature as unknown as string);
-      conv.topP = Number(conv.topP as unknown as string);
+    const conv2:Conversation[] = conv2_raw.map((conv_raw: any) => {
+      
 
-      conv.folderId = 'predefined-conversations'
-      if (model_key) {
-        const model_id = OpenAIModelID[model_key]
-        conv.model = {id: model_id_str, 
-          name: OpenAIModels[model_id].name,
-          maxLength: OpenAIModels[model_id].maxLength,
-          tokenLimit: OpenAIModels[model_id].tokenLimit,
-          type: 'chat'
+      const model_id_str = conv_raw.model as unknown as string
+      
+      const temperature = Number(conv_raw.temperature as unknown as string);
+      const topP = Number(conv_raw.top_p as unknown as string);
+      const folderId = conv_raw['shared'] === 'True' ? 'predefined-conversations' : null
+      const id = conv_raw['id']
+      const name = conv_raw['name']
+      const messages = conv_raw['messages']
+      const files = conv_raw['files']
+      const getModel = (model_id_str: string) => {
+        const model_key = getEnumKeyByValue(model_id_str);
+        if (model_key) {
+          const model_id = OpenAIModelID[model_key]
+          return {
+            id: OpenAIModels[model_id].id,
+            name: OpenAIModels[model_id].name,
+            maxLength: OpenAIModels[model_id].maxLength,
+            tokenLimit: OpenAIModels[model_id].tokenLimit,
+            type: OpenAIModels[model_id].type
+          } as OpenAIModel
+        } else {
+          return {
+            id: model_id_str,
+            name: model_id_str.toUpperCase(),
+            maxLength: 12000,
+            tokenLimit: 2000,
+            type: conv_raw['type']
+          } as OpenAIModel
         }
       }
+      const model = getModel(model_id_str)
+
+      return {id, name, model, temperature, topP, folderId, messages, files}
     })
 
-    console.log('conv2:', conv2)
     const combined = [...conv1, ...conv2]
     const unique = combined.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
-    console.log('combined:', unique)
     return unique
   }
 
@@ -238,7 +256,7 @@ const Home = ({
 
     // TODO: send the request to the server and get the conversation id
     dispatch({ field: 'loading', value: true });
-    const endpoint = 'api/services'
+    const endpoint = `api/services?clientId=${getClientId()}`
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -255,6 +273,7 @@ const Home = ({
       id: conversationId,
       name: t('New Conversation'),
       messages: [],
+      files: [],
       model: lastConversation?.model || {
         id: OpenAIModels[defaultModelId].id,
         name: OpenAIModels[defaultModelId].name,
@@ -355,7 +374,7 @@ const Home = ({
       dispatch({ field: 'pluginKeys', value: [] });
       localStorage.removeItem('pluginKeys');
     } else if (pluginKeys) {
-      dispatch({ field: 'pluginKeys', value: pluginKeys });
+      dispatch({ field: 'pluginKeys', value: JSON.parse(pluginKeys) });
     }
 
     if (window.innerWidth < 640) {
@@ -420,19 +439,31 @@ const Home = ({
         value: cleanedSelectedConversation,
       });
     } else {
-      const lastConversation = conversations[conversations.length - 1];
-      dispatch({
-        field: 'selectedConversation',
-        value: {
-          id: uuidv4(),
-          name: t('New Conversation'),
-          messages: [],
-          model: OpenAIModels[defaultModelId],
-          prompt: DEFAULT_SYSTEM_PROMPT,
-          temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
-          folderId: null,
-        },
-      });
+      console.log('no selected conversation found, creating new one')
+      console.log(conversations)
+      if (conversations.length > 0) {
+        console.log('conversations.length > 0')
+        dispatch({
+          field: 'selectedConversation',
+          value: conversations[conversations.length - 1],
+        });
+      } else {
+        handleNewConversation()
+      }
+
+      // const lastConversation = conversations[conversations.length - 1];
+      // dispatch({
+      //   field: 'selectedConversation',
+      //   value: {
+      //     id: uuidv4(),
+      //     name: t('New Conversation'),
+      //     messages: [],
+      //     model: OpenAIModels[defaultModelId],
+      //     prompt: DEFAULT_SYSTEM_PROMPT,
+      //     temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
+      //     folderId: null,
+      //   },
+      // });
     }
   }, [
     defaultModelId,

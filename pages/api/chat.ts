@@ -1,14 +1,8 @@
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
+import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
 import { OpenAIError, OpenAIStream } from '@/utils/server';
 
-import { ChatBody, Message } from '@/types/chat';
+import { ChatBody } from '@/types/chat';
 
-// @ts-expect-error
-import wasm from '../../node_modules/@dqbd/tiktoken/lite/tiktoken_bg.wasm?module';
-
-import tiktokenModel from '@dqbd/tiktoken/encoders/cl100k_base.json';
-import { Tiktoken, init } from '@dqbd/tiktoken/lite/init';
-import { M_PLUS_1 } from 'next/font/google';
 
 export const config = {
   runtime: 'edge',
@@ -40,8 +34,8 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response('Error', { status: 400 });
     }
 
-    const stream = await OpenAIStream(messages.length === 1, shared==='true', model, embeddingModel, prompt, temperature, key, serviceId, clientId, query);
-
+    const stream = await OpenAIStream(messages.length === 1, shared==='true', 
+      model, embeddingModel, prompt, temperature, key, serviceId, clientId, query);
     return new Response(stream as ReadableStream<any>);
   } catch (error) {
     console.error(error);

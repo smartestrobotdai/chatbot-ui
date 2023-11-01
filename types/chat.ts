@@ -27,4 +27,5 @@ export interface Conversation {
   topP: number;
   folderId: string | null;
   shared: boolean;
+  files: string[];
 }

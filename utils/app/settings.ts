@@ -21,3 +21,13 @@ export const getSettings = (): Settings => {
 export const saveSettings = (settings: Settings) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 };
+
+
+export const getClientId = (): string => {
+  let clientId = localStorage.getItem('clientId');
+  if (!clientId) {
+    clientId = Math.random().toString(36).substring(7);
+    localStorage.setItem('clientId', clientId);
+  }
+  return clientId;
+}

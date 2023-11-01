@@ -45,7 +45,6 @@ export const ChatFolders = ({ searchTerm }: Props) => {
     );
   };
 
-  console.log('folders', folders)
   return (
     <div className="flex w-full flex-col pt-2">
       {folders

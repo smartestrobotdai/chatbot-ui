@@ -8,9 +8,37 @@ export const config = {
 };
 
 
-
+const deleteHandler = async (req: Request): Promise<Response> => {
+  try {
+    console.log('deleting service')
+    const requestUrl = new URL(req.url)
+    const serviceId = requestUrl.searchParams.get('serviceId');
+    const clientId = requestUrl.searchParams.get('clientId');
+    if (!clientId) {
+      return new Response('Error: clientId are empty', { status: 400 });
+    }
+    let url = `${OPENAI_API_HOST}/v1/services`
+    if (serviceId) {
+      // delete one services
+      url += `/${serviceId}?clientId=${clientId}`
+    } else {
+      // delete all service
+      url += `?clientId=${clientId}`
+    }
+    const response = await fetch(url, {
+      method: 'DELETE',
+    });
+    return new Response(JSON.stringify({}), { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return new Response('Error', { status: 500 });
+  }
+}
 
 const handler = async (req: Request): Promise<Response> => {
+  if (req.method === 'DELETE') {
+    return deleteHandler(req)
+  }
   try {
     let body = null
     let isPost = false
@@ -20,7 +48,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     console.log('body', body)
-    const url = `${OPENAI_API_HOST}/v1/services`;
+    let url = `${OPENAI_API_HOST}/v1/services`;
+    const requestUrl = new URL(req.url)
+    const clientId = requestUrl.searchParams.get('clientId');
+    if (clientId) {
+      url += `?clientId=${clientId}`
+    }
     console.log('req', req)
     // Forward the request to your Python backend
     const pythonBackendResponse = await fetch(url, {
@@ -33,7 +66,9 @@ const handler = async (req: Request): Promise<Response> => {
     const data = await pythonBackendResponse.json();
 
     // Return the response back to the frontend
-    return new Response(JSON.stringify(data.data), {status: 200});
+
+    return new Response(JSON.stringify(data), {status: 200});
+
   } catch (error) {
     console.error(error);
     return new Response('Error', {status: 500});

@@ -33,13 +33,12 @@ const Folder = ({
   handleDrop,
   folderComponent,
 }: Props) => {
-  console.log('Folder, currentFolder.id', currentFolder.id)
   const { handleDeleteFolder, handleUpdateFolder } = useContext(HomeContext);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   const handleEnterDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter') {

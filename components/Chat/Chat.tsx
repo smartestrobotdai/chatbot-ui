@@ -33,6 +33,9 @@ import { ModelSelect } from './ModelSelect';
 import { SystemPrompt } from './SystemPrompt';
 import { TemperatureSlider } from './Temperature';
 import { MemoizedChatMessage } from './MemoizedChatMessage';
+import { getClientId } from '@/utils/app/settings';
+import FormData from 'form-data';
+import { EmbeddedFiles } from './EmbeddedFiles';
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
@@ -67,6 +70,54 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEmbed = async (files: File[]) => {
+    // TODO: send the files to the server in multipart format one by one
+    // call the endpint 'api/embed?serviceId=${selectedConversation.id}&clientId=${clientId}'
+    // and send the files in the body
+    try {
+      homeDispatch({ field: 'loading', value: true });
+      homeDispatch({ field: 'messageIsStreaming', value: true });
+      const serviceId = selectedConversation?.id;
+      const clientId = getClientId()
+      const url = `api/embed?serviceId=${serviceId}&clientId=${clientId}`;
+      for (const filePath of files) {
+        
+        const formData = new FormData();
+        
+        
+        // Send the file to the server
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData as any,
+        });
+
+        // Check if the request was successful
+        if (response.ok) {
+          console.log(`Successfully uploaded ${filePath}`);
+        } else {
+          console.error(`Failed to upload ${filePath}. Status: ${response.status}`);
+        }
+        if (selectedConversation) {
+          let updatedConversation: Conversation = {
+            ...selectedConversation,
+            files: [...selectedConversation.files, filePath.name]
+          }
+          homeDispatch({
+            field: 'selectedConversation',
+            value: updatedConversation,
+          })
+          saveConversation(updatedConversation)
+        }
+      }
+      homeDispatch({ field: 'loading', value: false });
+      homeDispatch({ field: 'messageIsStreaming', value: false });
+    } catch (error) {
+      console.error('An error occurred:', error);
+      homeDispatch({ field: 'loading', value: false });
+      homeDispatch({ field: 'messageIsStreaming', value: false });
+    }
+  }
 
   const handleSend = useCallback(
     async (message: Message, deleteCount = 0, plugin: Plugin | null = null) => {
@@ -103,6 +154,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         };
         const endpoint = getEndpoint(plugin);
         let body;
+        console.log('pluginKeys', pluginKeys)
         if (!plugin) {
           body = JSON.stringify(chatBody);
         } else {
@@ -117,14 +169,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           });
         }
         const controller = new AbortController();
-        let clientId = localStorage.getItem('clientId');
-        if (!clientId) {
-          clientId = Math.random().toString(36).substring(7);
-          localStorage.setItem('clientId', clientId);
-        }
+        let clientId = getClientId()
         
         const url = `${endpoint}?serviceId=${selectedConversation.id}&clientId=${clientId}&shared=${selectedConversation.shared}`
-        console.log('url', url)
+
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -132,7 +180,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           },
           signal: controller.signal,
           body,
-        });
+        })
         if (!response.ok) {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
@@ -145,7 +193,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           homeDispatch({ field: 'messageIsStreaming', value: false });
           return;
         }
-        if (!plugin) {
+        //if (!plugin) {
+        if (true) {
           if (updatedConversation.messages.length === 1) {
             const { content } = message;
             const customName =
@@ -302,12 +351,23 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       confirm(t<string>('Are you sure you want to clear all messages?')) &&
       selectedConversation
     ) {
+      // send request to server to clear messages
+      try {
+        const clientId = localStorage.getItem('clientId');
+        const url = `api/clients?serviceId=${selectedConversation.id}&clientId=${clientId}`
+        fetch(url, {
+          method: 'DELETE',
+        })
+      } catch (error) {
+        console.error('Error clearing chat history on server:', error);
+        throw error;
+      }
       handleUpdateConversation(selectedConversation, {
         key: 'messages',
         value: [],
-      });
+      })
     }
-  };
+  }
 
   const scrollDown = () => {
     if (autoScrollEnabled) {
@@ -356,7 +416,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     };
   }, [messagesEndRef]);
 
-  console.log('selectedConversation', selectedConversation)
+
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
         <>
@@ -395,6 +455,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                             value: temperature,
                           })
                         }
+                      />
+
+                      <EmbeddedFiles
+                        files={selectedConversation?.files}
                       />
                         {
                           selectedConversation?.model?.name?.includes('GPT') && 
@@ -471,6 +535,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                         }
                         disabled={true}
                       />
+                      <EmbeddedFiles
+                        files={selectedConversation?.files!}
+                      />
                     </div>
                   </div>
                 )}
@@ -509,6 +576,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             onSend={(message, plugin) => {
               setCurrentMessage(message);
               handleSend(message, 0, plugin);
+            }}
+            onEmbed={(files) => {
+              handleEmbed(files)
             }}
             onScrollDownClick={handleScrollDown}
             onRegenerate={() => {

@@ -1,20 +1,24 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 
-import { OPENAI_API_HOST } from '@/utils/app/const';
+
+
 import { cleanSourceText } from '@/utils/server/google';
 
-import { Message } from '@/types/chat';
 import { GoogleBody, GoogleSource } from '@/types/google';
 
-import { Readability } from '@mozilla/readability';
+//import { Readability } from '@mozilla/readability';
 import endent from 'endent';
-import jsdom, { JSDOM } from 'jsdom';
+//import jsdom, { JSDOM } from 'jsdom';
+import { OpenAIStream } from '@/utils/server';
 
-const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
+export const config = {
+  runtime: 'edge',
+};
+
+const handler = async (req: Request): Promise<Response> => {
   try {
-    const { messages, key, model, googleAPIKey, googleCSEId } =
-      req.body as GoogleBody;
-
+    const { messages, key, model, prompt, embeddingModel, temperature, googleAPIKey, googleCSEId } =
+      await req.json() as GoogleBody;
+    console.log('messages', messages)
     const userMessage = messages[messages.length - 1];
     const query = encodeURIComponent(userMessage.content.trim());
 
@@ -23,11 +27,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
         googleAPIKey ? googleAPIKey : process.env.GOOGLE_API_KEY
       }&cx=${
         googleCSEId ? googleCSEId : process.env.GOOGLE_CSE_ID
-      }&q=${query}&num=5`,
+      }&q=${query}&num=2`,
     );
 
     const googleData = await googleRes.json();
-
     const sources: GoogleSource[] = googleData.items.map((item: any) => ({
       title: item.title,
       link: item.link,
@@ -49,31 +52,48 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
             timeoutPromise,
           ])) as any;
 
-          // if (res) {
-          const html = await res.text();
 
-          const virtualConsole = new jsdom.VirtualConsole();
-          virtualConsole.on('error', (error) => {
-            if (!error.message.includes('Could not parse CSS stylesheet')) {
-              console.error(error);
-            }
-          });
+          // const html = await res.text();
 
-          const dom = new JSDOM(html, { virtualConsole });
-          const doc = dom.window.document;
-          const parsed = new Readability(doc).parse();
+          // const virtualConsole = new jsdom.VirtualConsole();
+          // virtualConsole.on('error', (error) => {
+          //   if (!error.message.includes('Could not parse CSS stylesheet')) {
+          //     console.error(error);
+          //   }
+          // });
 
-          if (parsed) {
-            let sourceText = cleanSourceText(parsed.textContent);
+          // const dom = new JSDOM(html, { virtualConsole });
+          // const doc = dom.window.document;
+          // const parsed = new Readability(doc).parse();
 
+          // if (parsed) {
+          //   let sourceText = cleanSourceText(parsed.textContent);
+
+          //   return {
+          //     ...source,
+          //     // TODO: switch to tokens
+          //     text: sourceText.slice(0, 2000),
+          //   } as GoogleSource;
+          // }
+
+          if (res && res.ok) {
+            const html = await res.text();
+    
+            // Simplified text extraction using regex (this is a very basic example)
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]+)<\/body>/i);
+            let sourceText = bodyMatch ? bodyMatch[1] : '';
+    
+            // Remove all HTML tags for a cleaner text (be cautious when using regex for HTML manipulation)
+            sourceText = sourceText.replace(/<\/?[^>]+(>|$)/g, "");
+    
+            // Use your cleanSourceText function
+            sourceText = cleanSourceText(sourceText);
+    
             return {
               ...source,
-              // TODO: switch to tokens
               text: sourceText.slice(0, 2000),
             } as GoogleSource;
           }
-          // }
-
           return null;
         } catch (error) {
           console.error(error);
@@ -83,7 +103,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     );
 
     const filteredSources: GoogleSource[] = sourcesWithText.filter(Boolean);
-
+    
+    // Sources:
+    // ${filteredSources.map((source) => {
+    //   return endent`
+    //   ${source.title} (${source.link}):
+    //   ${source.text}
+    //   `;
+    // })}
     const answerPrompt = endent`
     Provide me with the information I requested. Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as a markdown link as you use them at the end of each sentence by number of the source (ex: [[1]](link.com)). Provide an accurate response and then stop. Today's date is ${new Date().toLocaleDateString()}.
 
@@ -109,40 +136,50 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
 
     Response:
     `;
+    console.log(answerPrompt)
+    const requestUrl = new URL(req.url!, `http://${req.headers.host}`)
+    const serviceId = requestUrl.searchParams.get('serviceId');
+    const clientId = requestUrl.searchParams.get('clientId');
+    const shared = requestUrl.searchParams.get('shared');
+    console.log(`shared: ${shared}, serviceId: ${serviceId}, clientId: ${clientId}`)
+    console.log('111111111')
+    const stream = await OpenAIStream(messages.length === 1, shared==='true', 
+      model, embeddingModel, prompt, temperature, key, serviceId, clientId, answerPrompt);
 
-    const answerMessage: Message = { role: 'user', content: answerPrompt };
+    return new Response(stream as ReadableStream<any>);
+    // const answerMessage: Message = { role: 'user', content: answerPrompt };
 
-    const answerRes = await fetch(`${OPENAI_API_HOST}/v1/chat/completions`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`,
-        ...(process.env.OPENAI_ORGANIZATION && {
-          'OpenAI-Organization': process.env.OPENAI_ORGANIZATION,
-        }),
-      },
-      method: 'POST',
-      body: JSON.stringify({
-        model: model.id,
-        messages: [
-          {
-            role: 'system',
-            content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
-          },
-          answerMessage,
-        ],
-        max_tokens: 1000,
-        temperature: 1,
-        stream: false,
-      }),
-    });
+    // const answerRes = await fetch(`${OPENAI_API_HOST}/v1/chat/completions`, {
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`,
+    //     ...(process.env.OPENAI_ORGANIZATION && {
+    //       'OpenAI-Organization': process.env.OPENAI_ORGANIZATION,
+    //     }),
+    //   },
+    //   method: 'POST',
+    //   body: JSON.stringify({
+    //     model: model.id,
+    //     messages: [
+    //       {
+    //         role: 'system',
+    //         content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
+    //       },
+    //       answerMessage,
+    //     ],
+    //     max_tokens: 1000,
+    //     temperature: 1,
+    //     stream: false,
+    //   }),
+    // });
 
-    const { choices: choices2 } = await answerRes.json();
-    const answer = choices2[0].message.content;
+    // const { choices: choices2 } = await answerRes.json();
+    // const answer = choices2[0].message.content;
 
-    res.status(200).json({ answer });
+    // res.status(200).json({ answer });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error'})
+    return new Response('Error', { status: 500 });
   }
 };
 
