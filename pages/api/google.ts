@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
         googleAPIKey ? googleAPIKey : process.env.GOOGLE_API_KEY
       }&cx=${
         googleCSEId ? googleCSEId : process.env.GOOGLE_CSE_ID
-      }&q=${query}&num=2`,
+      }&q=${query}&num=3`,
     );
 
     const googleData = await googleRes.json();

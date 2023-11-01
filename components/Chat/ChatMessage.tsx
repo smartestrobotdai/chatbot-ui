@@ -6,7 +6,7 @@ import {
   IconTrash,
   IconUser,
 } from '@tabler/icons-react';
-import { FC, memo, useContext, useEffect, useRef, useState } from 'react';
+import { FC, HTMLAttributes, memo, useContext, useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -22,6 +22,7 @@ import { MemoizedReactMarkdown } from '../Markdown/MemoizedReactMarkdown';
 import rehypeMathjax from 'rehype-mathjax';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+
 
 export interface Props {
   message: Message;
@@ -123,6 +124,16 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [isEditing]);
+  
+  const unescapeUnicode = (str:any) => {
+    return JSON.parse(`"${str}"`);
+  };
+
+  const processMessageContent = (messageContent: string) => {
+    const hasUnicodeEscape = messageContent.includes('\\u');
+    const replacedNewLines = messageContent.replace(/\\n/g, '  \n');
+    return hasUnicodeEscape ? unescapeUnicode(messageContent) : replacedNewLines;
+  };
 
   return (
     <div
@@ -215,7 +226,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                 rehypePlugins={[rehypeMathjax]}
                 components={{
                   code({ node, inline, className, children, ...props }) {
-                    if (children.length) {
+                    if (children && Array.isArray(children)  && children.length) {
                       if (children[0] == '▍') {
                         return <span className="animate-pulse cursor-default mt-1">▍</span>
                       }
@@ -261,7 +272,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                   },
                 }}
               >
-              {`${message.content.replace(/\\n/g, '  \n')}${
+              {`${processMessageContent(message.content)}${
                 messageIsStreaming && messageIndex === (selectedConversation?.messages.length ?? 0) - 1 ? '`▍`' : ''
               }`}
               </MemoizedReactMarkdown>

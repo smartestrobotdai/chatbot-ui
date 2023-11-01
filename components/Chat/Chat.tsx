@@ -84,7 +84,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       for (const filePath of files) {
         
         const formData = new FormData();
-        
+        formData.append('file', filePath);
         
         // Send the file to the server
         const response = await fetch(url, {

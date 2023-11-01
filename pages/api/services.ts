@@ -54,7 +54,6 @@ const handler = async (req: Request): Promise<Response> => {
     if (clientId) {
       url += `?clientId=${clientId}`
     }
-    console.log('req', req)
     // Forward the request to your Python backend
     const pythonBackendResponse = await fetch(url, {
       method: req.method,

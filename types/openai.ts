@@ -14,6 +14,7 @@ export enum OpenAIModelID {
   GPT_4 = 'gpt-4',
   GPT_4_32K = 'gpt-4-32k',
   ADA_002 = 'text-embedding-ada-002',
+  
 }
 
 // in case the `DEFAULT_MODEL` environment variable is not set or set to an unsupported model

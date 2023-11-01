@@ -57,8 +57,9 @@ const Home = ({
   const { t } = useTranslation('chat');
   const { getModels, getConversations } = useApiService();
   const { getModelsError } = useErrorService();
-  const [initialRender, setInitialRender] = useState<boolean>(true);
-
+  
+  
+  let initialiatedConversation = false
   const contextValue = useCreateReducer<HomeInitialState>({
     initialState,
   });
@@ -119,47 +120,47 @@ const Home = ({
     { enabled: true, refetchOnMount: false },
   );
   
-  const combineConversations = (conv1: Conversation[], conv2_raw: any) => {
+  const combineConversations = (conv1: Conversation[], conv2Raw: any) => {
     function getEnumKeyByValue(value: string): keyof typeof OpenAIModelID | undefined {
       return Object.keys(OpenAIModelID).find(key => OpenAIModelID[key as keyof typeof OpenAIModelID] === value) as keyof typeof OpenAIModelID | undefined;
     }
 
-    const conv2:Conversation[] = conv2_raw.map((conv_raw: any) => {
-      
-
-      const model_id_str = conv_raw.model as unknown as string
-      
-      const temperature = Number(conv_raw.temperature as unknown as string);
-      const topP = Number(conv_raw.top_p as unknown as string);
-      const folderId = conv_raw['shared'] === 'True' ? 'predefined-conversations' : null
-      const id = conv_raw['id']
-      const name = conv_raw['name']
-      const messages = conv_raw['messages']
-      const files = conv_raw['files']
-      const getModel = (model_id_str: string) => {
-        const model_key = getEnumKeyByValue(model_id_str);
+    const conv2:Conversation[] = conv2Raw.map((convRaw: any) => {
+      console.log('convRaw', convRaw)
+      const modelIdStr = convRaw['model'] as unknown as string
+      const embeddingModelIdStr = convRaw['embedding_model'] as unknown as string
+      const temperature = Number(convRaw.temperature as unknown as string);
+      const topP = Number(convRaw.top_p as unknown as string);
+      const folderId = convRaw['shared'] === 'True' ? 'predefined-conversations' : null
+      const id = convRaw['id']
+      const name = convRaw['name']
+      const messages = convRaw['messages']
+      const files = convRaw['files']
+      const shared = convRaw['shared'] === 'True'
+      const getModel = (modelIdStr: string) => {
+        const model_key = getEnumKeyByValue(modelIdStr);
         if (model_key) {
-          const model_id = OpenAIModelID[model_key]
+          const modelId = OpenAIModelID[model_key]
           return {
-            id: OpenAIModels[model_id].id,
-            name: OpenAIModels[model_id].name,
-            maxLength: OpenAIModels[model_id].maxLength,
-            tokenLimit: OpenAIModels[model_id].tokenLimit,
-            type: OpenAIModels[model_id].type
+            id: OpenAIModels[modelId].id,
+            name: OpenAIModels[modelId].name,
+            maxLength: OpenAIModels[modelId].maxLength,
+            tokenLimit: OpenAIModels[modelId].tokenLimit,
+            type: OpenAIModels[modelId].type
           } as OpenAIModel
         } else {
           return {
-            id: model_id_str,
-            name: model_id_str.toUpperCase(),
+            id: modelIdStr,
+            name: modelIdStr.toUpperCase(),
             maxLength: 12000,
             tokenLimit: 2000,
-            type: conv_raw['type']
+            type: convRaw['type']
           } as OpenAIModel
         }
       }
-      const model = getModel(model_id_str)
-
-      return {id, name, model, temperature, topP, folderId, messages, files}
+      const model = getModel(modelIdStr)
+      const embeddingModel = getModel(embeddingModelIdStr)
+      return {id, name, model, embeddingModel, temperature, topP, folderId, messages, files, shared}
     })
 
     const combined = [...conv1, ...conv2]
@@ -262,8 +263,10 @@ const Home = ({
       headers: {
         'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}),
-      })
+        body: JSON.stringify({name: 'New Conversation',
+         model: defaultModelId, 
+         embeddingModel: defaultEmbeddingModelId}),
+    })
     const data = await response.json()
     console.log('data:', data)
     const conversationId = data.service_id
@@ -275,17 +278,17 @@ const Home = ({
       messages: [],
       files: [],
       model: lastConversation?.model || {
-        id: OpenAIModels[defaultModelId].id,
-        name: OpenAIModels[defaultModelId].name,
-        maxLength: OpenAIModels[defaultModelId].maxLength,
-        tokenLimit: OpenAIModels[defaultModelId].tokenLimit,
+        id: defaultModelId,
+        name: defaultModelId.toUpperCase(),
+        maxLength: 10000,
+        tokenLimit: 4096,
       },
 
       embeddingModel: lastConversation?.embeddingModel || {
-        id: OpenAIModels[defaultEmbeddingModelId].id,
-        name: OpenAIModels[defaultEmbeddingModelId].name,
-        maxLength: OpenAIModels[defaultEmbeddingModelId].maxLength,
-        tokenLimit: OpenAIModels[defaultEmbeddingModelId].tokenLimit,
+        id: defaultEmbeddingModelId,
+        name: defaultEmbeddingModelId.toUpperCase(),
+        maxLength: 10000,
+        tokenLimit: 4096,
       },
       topP: lastConversation?.topP ?? Number(DEFAULT_TOP_P),
       prompt: DEFAULT_SYSTEM_PROMPT,
@@ -351,6 +354,12 @@ const Home = ({
   // ON LOAD --------------------------------------------
 
   useEffect(() => {
+    console.log("useEffect ran due to:", { 
+      defaultModelId, 
+      dispatch, 
+      serverSideApiKeyIsSet, 
+      serverSidePluginKeysSet 
+    });
     const settings = getSettings();
     if (settings.theme) {
       dispatch({
@@ -439,8 +448,8 @@ const Home = ({
         value: cleanedSelectedConversation,
       });
     } else {
-      console.log('no selected conversation found, creating new one')
-      console.log(conversations)
+      
+      console.log('conversations', conversations)
       if (conversations.length > 0) {
         console.log('conversations.length > 0')
         dispatch({
@@ -448,7 +457,10 @@ const Home = ({
           value: conversations[conversations.length - 1],
         });
       } else {
-        handleNewConversation()
+        if (!initialiatedConversation) {
+          handleNewConversation()
+          initialiatedConversation = true
+        }
       }
 
       // const lastConversation = conversations[conversations.length - 1];
@@ -470,7 +482,7 @@ const Home = ({
     dispatch,
     serverSideApiKeyIsSet,
     serverSidePluginKeysSet,
-  ]);
+  ])
 
   return (
     <HomeContext.Provider
@@ -522,19 +534,11 @@ export default Home;
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
   const defaultModelId =
-    (process.env.DEFAULT_MODEL &&
-      Object.values(OpenAIModelID).includes(
-        process.env.DEFAULT_MODEL as OpenAIModelID,
-      ) &&
-      process.env.DEFAULT_MODEL) ||
+    process.env.DEFAULT_MODEL ||
     fallbackModelID;
 
   const defaultEmbeddingModelId =
-    (process.env.DEFAULT_EMBEDDING_MODEL &&
-      Object.values(OpenAIModelID).includes(
-        process.env.DEFAULT_EMBEDDING_MODEL as OpenAIModelID,
-      ) &&
-      process.env.DEFAULT_EMBEDDING_MODEL) ||
+    process.env.DEFAULT_EMBEDDING_MODEL ||
       fallbackEmbeddingModelID;
   let serverSidePluginKeysSet = false;
 
