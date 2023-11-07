@@ -36,7 +36,7 @@ import { MemoizedChatMessage } from './MemoizedChatMessage';
 import { getClientId } from '@/utils/app/settings';
 import FormData from 'form-data';
 import { EmbeddedFiles } from './EmbeddedFiles';
-import { MaxTokens } from './MaxTokens';
+
 import { MemoryType } from '@/types/memoryType';
 import { MemoryTypeSelect } from './MemoryTypeSelect';
 import { OpenAIModel } from '@/types/openai';

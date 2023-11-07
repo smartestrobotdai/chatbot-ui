@@ -1,21 +1,6 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: chatbot-ui
----
-apiVersion: v1
-kind: Secret
-metadata:
-  namespace: chatbot-ui
-  name: chatbot-ui
-type: Opaque
-data:
-  OPENAI_API_KEY: <base64 encoded key>
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: chatbot-ui
   name: chatbot-ui
   labels:
     app: chatbot-ui
@@ -30,22 +15,21 @@ spec:
         app: chatbot-ui
     spec:
       containers:
-        - name: chatbot-ui
-          image: <docker user>/chatbot-ui:latest
-          resources: {}
-          ports:
-            - containerPort: 3000
-          env:
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: chatbot-ui
-                  key: OPENAI_API_KEY
+      - name: chatbot-ui
+        image: meuwbidsdevmlwcr.azurecr.io/llm-chatbot:01
+        resources: {}
+        ports:
+          - containerPort: 3000
+        env:
+          - name: OPENAI_API_HOST
+            value: "http://llm-service:5000"
+        imagePullPolicy: Always  # Add this line
+      imagePullSecrets:
+      - name: azure-regcred
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  namespace: chatbot-ui
   name: chatbot-ui
   labels:
     app: chatbot-ui
@@ -53,8 +37,9 @@ spec:
   ports:
     - name: http
       protocol: TCP
-      port: 80
+      port: 3000
       targetPort: 3000
+      nodePort: 30060
   selector:
     app: chatbot-ui
-  type: ClusterIP
+  type: NodePort
