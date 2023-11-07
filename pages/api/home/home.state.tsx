@@ -1,6 +1,7 @@
 import { Conversation, Message } from '@/types/chat';
 import { ErrorMessage } from '@/types/error';
 import { FolderInterface } from '@/types/folder';
+import { MemoryType } from '@/types/memoryType';
 import { OpenAIModel, OpenAIModelID } from '@/types/openai';
 import { PluginKey } from '@/types/plugin';
 import { Prompt } from '@/types/prompt';
@@ -26,6 +27,7 @@ export interface HomeInitialState {
   searchTerm: string;
   defaultModelId: OpenAIModelID | undefined;
   defaultEmbeddingModelId: OpenAIModelID | undefined;
+  defaultMemoryType: MemoryType | undefined;
   serverSideApiKeyIsSet: boolean;
   serverSidePluginKeysSet: boolean;
 }
@@ -51,6 +53,7 @@ export const initialState: HomeInitialState = {
   searchTerm: '',
   defaultModelId: undefined,
   defaultEmbeddingModelId: undefined,
+  defaultMemoryType: undefined,
   serverSideApiKeyIsSet: false,
   serverSidePluginKeysSet: false,
 };

@@ -25,8 +25,6 @@ import ChatbarContext from './Chatbar.context';
 import { ChatbarInitialState, initialState } from './Chatbar.state';
 
 import { v4 as uuidv4 } from 'uuid';
-import useApiService from '@/services/useApiService';
-import { useQuery } from 'react-query';
 import { getClientId } from '@/utils/app/settings';
 
 export const Chatbar = () => {
@@ -118,7 +116,7 @@ export const Chatbar = () => {
   const handleClearConversations = async () => {
     homeDispatch({ field: 'loading', value: true });
     // Send request to clear conversations
-    const url = `api/services?clientId=${getClientId()}`;
+    const url = `api/services?client_id=${getClientId()}`;
     try {
       const response = await fetch(url, {
         method: 'DELETE',
@@ -162,7 +160,7 @@ export const Chatbar = () => {
   const handleDeleteConversation = async (conversation: Conversation) => {
     const serviceId = conversation.id
     const clientId = getClientId()
-    const url = `api/services?serviceId=${serviceId}&clientId=${clientId}`;
+    const url = `api/services?serviceId=${serviceId}&client_id=${clientId}`;
     const response = await fetch(url, {
       method: 'DELETE',
     })

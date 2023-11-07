@@ -36,6 +36,12 @@ import { MemoizedChatMessage } from './MemoizedChatMessage';
 import { getClientId } from '@/utils/app/settings';
 import FormData from 'form-data';
 import { EmbeddedFiles } from './EmbeddedFiles';
+import { MaxTokens } from './MaxTokens';
+import { MemoryType } from '@/types/memoryType';
+import { MemoryTypeSelect } from './MemoryTypeSelect';
+import { OpenAIModel } from '@/types/openai';
+
+
 
 interface Props {
   stopConversationRef: MutableRefObject<boolean>;
@@ -67,6 +73,11 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
   const [showScrollDownButton, setShowScrollDownButton] =
     useState<boolean>(false);
 
+  
+  const [selectedModel, setSelectedModel] = useState<OpenAIModel | null>(null);
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState<OpenAIModel | null>(null);
+
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,6 +92,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       const serviceId = selectedConversation?.id;
       const clientId = getClientId()
       const url = `api/embed?serviceId=${serviceId}&clientId=${clientId}`;
+      let newEmbeddedFiles: string[] = []
       for (const filePath of files) {
         
         const formData = new FormData();
@@ -94,21 +106,24 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
 
         // Check if the request was successful
         if (response.ok) {
-          console.log(`Successfully uploaded ${filePath}`);
+          console.log(`Successfully uploaded ${filePath.name}`);
+          newEmbeddedFiles.push(filePath.name)
         } else {
           console.error(`Failed to upload ${filePath}. Status: ${response.status}`);
         }
-        if (selectedConversation) {
-          let updatedConversation: Conversation = {
-            ...selectedConversation,
-            files: [...selectedConversation.files, filePath.name]
-          }
-          homeDispatch({
-            field: 'selectedConversation',
-            value: updatedConversation,
-          })
-          saveConversation(updatedConversation)
+
+      }
+
+      if (selectedConversation && newEmbeddedFiles.length > 0) {
+        let updatedConversation: Conversation = {
+          ...selectedConversation,
+          files: [...selectedConversation.files, ...newEmbeddedFiles]
         }
+        homeDispatch({
+          field: 'selectedConversation',
+          value: updatedConversation,
+        })
+        saveConversation(updatedConversation)
       }
       homeDispatch({ field: 'loading', value: false });
       homeDispatch({ field: 'messageIsStreaming', value: false });
@@ -151,6 +166,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           key: apiKey,
           prompt: updatedConversation.prompt,
           temperature: updatedConversation.temperature,
+          memoryType: updatedConversation.memoryType,
         };
         const endpoint = getEndpoint(plugin);
         let body;
@@ -182,13 +198,28 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           body,
         })
         if (!response.ok) {
+          const message = await response.json()
+          console.log('!response.ok', message)
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
           toast.error(response.statusText);
+          const updatedMessages: Message[] = [
+            ...updatedConversation.messages,
+            { role: 'assistant', content: message.statusText },
+          ];
+          updatedConversation = {
+            ...updatedConversation,
+            messages: updatedMessages,
+          };
+          homeDispatch({
+            field: 'selectedConversation',
+            value: updatedConversation,
+          });
           return;
         }
         const data = response.body;
         if (!data) {
+          console.log('!data')
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
           return;
@@ -270,36 +301,6 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           homeDispatch({ field: 'conversations', value: updatedConversations });
           saveConversations(updatedConversations);
           homeDispatch({ field: 'messageIsStreaming', value: false });
-        } else {
-          const { answer } = await response.json();
-          const updatedMessages: Message[] = [
-            ...updatedConversation.messages,
-            { role: 'assistant', content: answer },
-          ];
-          updatedConversation = {
-            ...updatedConversation,
-            messages: updatedMessages,
-          };
-          homeDispatch({
-            field: 'selectedConversation',
-            value: updateConversation,
-          });
-          saveConversation(updatedConversation);
-          const updatedConversations: Conversation[] = conversations.map(
-            (conversation) => {
-              if (conversation.id === selectedConversation.id) {
-                return updatedConversation;
-              }
-              return conversation;
-            },
-          );
-          if (updatedConversations.length === 0) {
-            updatedConversations.push(updatedConversation);
-          }
-          homeDispatch({ field: 'conversations', value: updatedConversations });
-          saveConversations(updatedConversations);
-          homeDispatch({ field: 'loading', value: false });
-          homeDispatch({ field: 'messageIsStreaming', value: false });
         }
       }
     },
@@ -369,6 +370,32 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     }
   }
 
+
+  const onClearEmbeddings = () => {
+    if (
+      confirm(t<string>('Are you sure you want to clear all embeddings?')) &&
+      selectedConversation
+    ) {
+      // send request to server to clear messages
+      try {
+        
+        const url = `api/clearEmbeddings?serviceId=${selectedConversation.id}`
+        fetch(url, {
+          method: 'DELETE',
+        })
+      } catch (error) {
+        console.error('Error clearing embeddings on server:', error);
+        throw error;
+      }
+      handleUpdateConversation(selectedConversation, {
+        key: 'files',
+        value: [],
+      })
+    }
+  }
+
+
+
   const scrollDown = () => {
     if (autoScrollEnabled) {
       messagesEndRef.current?.scrollIntoView(true);
@@ -427,15 +454,13 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           >
             {selectedConversation?.messages?.length === 0 ? (
               <>
-                <div className="mx-auto flex flex-col space-y-5 md:space-y-10 px-3 pt-5 md:pt-12 sm:max-w-[600px]">
+                <div className="mx-auto flex flex-col space-y-5 md:space-y-10 px-3 pt-2 md:pt-6 sm:max-w-[600px]">
                   <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100">
-
                   </div>
-
                   {models.length >= 0 && (
                     <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600">
-                      <ModelSelect type='chat' title='Chat Model'/>
-                      <ModelSelect type='text-embedding' title='Embedding Model'/>
+                      <ModelSelect type='chat' title='Chat Model' setSelectedModel={setSelectedModel}/>
+                      <ModelSelect type='text-embedding' title='Embedding Model' setSelectedModel={setSelectedModel}/>
                       <SystemPrompt
                         conversation={selectedConversation}
                         prompts={prompts}
@@ -457,38 +482,16 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                         }
                       />
 
-                      <EmbeddedFiles
-                        files={selectedConversation?.files}
-                      />
-                        {
-                          selectedConversation?.model?.name?.includes('GPT') && 
-                          !(apiKey || serverSideApiKeyIsSet) &&
-                          <>
-                            <div className="mb-2">
-                            <span className="text-red-500 mr-2">⚠️</span>
-                            {t(
-                              'Please set your OpenAI API key in the bottom left of the sidebar.',
-                            )}
-                            </div>
-                            <div>
-                            {t("If you don't have an OpenAI API key, you can get one here: ")}
-                            <a
-                              href="https://platform.openai.com/account/api-keys"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-500 hover:underline"
-                            >
-                              openai.com
-                            </a>
-                          </div>
-                        </>
-                        }
-
+                      {selectedConversation?.files?.length > 0 && (
+                          <EmbeddedFiles
+                          files={selectedConversation?.files}
+                          onClear={onClearEmbeddings}
+                          />
+                      )}
+                      <MemoryTypeSelect/>
                     </div>
                   )}
                 </div>
-
-
               </>
             ) : (
               <>
@@ -504,7 +507,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   <button
                     className="ml-2 cursor-pointer hover:opacity-50"
                     onClick={onClearAll}
-                  >
+                    >
                     <IconClearAll size={18} />
                   </button>
                 </div>
@@ -537,7 +540,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                       />
                       <EmbeddedFiles
                         files={selectedConversation?.files!}
+                        onClear={onClearEmbeddings}
                       />
+                      <MemoryTypeSelect disabled={true}/>
                     </div>
                   </div>
                 )}

@@ -19,7 +19,6 @@ import HomeContext from '@/pages/api/home/home.context';
 import { CodeBlock } from '../Markdown/CodeBlock';
 import { MemoizedReactMarkdown } from '../Markdown/MemoizedReactMarkdown';
 
-import rehypeMathjax from 'rehype-mathjax';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
@@ -223,9 +222,8 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
               <MemoizedReactMarkdown
                 className="prose dark:prose-invert flex-1"
                 remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeMathjax]}
                 components={{
-                  code({ node, inline, className, children, ...props }) {
+                  code({ node, className, children, ...props }) {
                     if (children && Array.isArray(children)  && children.length) {
                       if (children[0] == '▍') {
                         return <span className="animate-pulse cursor-default mt-1">▍</span>
@@ -235,8 +233,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                     }
 
                     const match = /language-(\w+)/.exec(className || '');
-
-                    return !inline ? (
+                    return match ? (
                       <CodeBlock
                         key={Math.random()}
                         language={(match && match[1]) || ''}
@@ -273,7 +270,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                 }}
               >
               {`${processMessageContent(message.content)}${
-                messageIsStreaming && messageIndex === (selectedConversation?.messages.length ?? 0) - 1 ? '`▍`' : ''
+                messageIsStreaming && messageIndex === (selectedConversation?.messages.length ?? 0) - 1 ? '▍' : ''
               }`}
               </MemoizedReactMarkdown>
 

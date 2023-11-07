@@ -40,12 +40,15 @@ import HomeContext from './home.context';
 import { HomeInitialState, initialState } from './home.state';
 
 import { v4 as uuidv4 } from 'uuid';
+import { MemoryType } from '@/types/memoryType';
+import { ModelSelect } from '@/components/Chat/ModelSelect';
 
 interface Props {
   serverSideApiKeyIsSet: boolean;
   serverSidePluginKeysSet: boolean;
   defaultModelId: OpenAIModelID;
   defaultEmbeddingModelId: OpenAIModelID;
+  defaultMemoryType: MemoryType;
 }
 
 const Home = ({
@@ -53,6 +56,7 @@ const Home = ({
   serverSidePluginKeysSet,
   defaultModelId,
   defaultEmbeddingModelId,
+  defaultMemoryType
 }: Props) => {
   const { t } = useTranslation('chat');
   const { getModels, getConversations } = useApiService();
@@ -257,7 +261,7 @@ const Home = ({
 
     // TODO: send the request to the server and get the conversation id
     dispatch({ field: 'loading', value: true });
-    const endpoint = `api/services?clientId=${getClientId()}`
+    const endpoint = `api/services?client_id=${getClientId()}`
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -272,6 +276,7 @@ const Home = ({
     const conversationId = data.service_id
     console.log('defaultModelId', defaultModelId)
     console.log('defaultEmbeddingModelId', defaultEmbeddingModelId)
+    console.log('defaultMemoryType', defaultMemoryType)
     const newConversation: Conversation = {
       id: conversationId,
       name: t('New Conversation'),
@@ -290,13 +295,15 @@ const Home = ({
         maxLength: 10000,
         tokenLimit: 4096,
       },
+
+      memoryType: defaultMemoryType,
       topP: lastConversation?.topP ?? Number(DEFAULT_TOP_P),
       prompt: DEFAULT_SYSTEM_PROMPT,
       // convert the string to number of temperature
 
       temperature: lastConversation?.temperature ?? Number(DEFAULT_TEMPERATURE),
       folderId: null,
-      shared: false,
+      shared: false
     };
 
     const updatedConversations = [...conversations, newConversation];
@@ -319,15 +326,43 @@ const Home = ({
       [data.key]: data.value,
     };
 
+
+
     const { single, all } = updateConversation(
       updatedConversation,
       conversations,
     );
 
+    console.log('single', single)
+    console.log("Before:", selectedConversation);
+    dispatch({ field: 'selectedConversation', value: single });
+    dispatch({ field: 'conversations', value: all });
+    console.log("After:", selectedConversation);
+  };
+  
+  const handleUpdateConversationMultiple = (
+    conversation: Conversation,
+    updates: Array<KeyValuePair>
+  ) => {
+    let updatedConversation = { ...conversation };
+  
+    updates.forEach(data => {
+      updatedConversation = {
+        ...updatedConversation,
+        [data.key]: data.value,
+      };
+    });
+  
+    const { single, all } = updateConversation(
+      updatedConversation,
+      conversations
+    );
+  
     dispatch({ field: 'selectedConversation', value: single });
     dispatch({ field: 'conversations', value: all });
   };
-
+  
+  
   // EFFECTS  --------------------------------------------
 
   useEffect(() => {
@@ -494,6 +529,7 @@ const Home = ({
         handleUpdateFolder,
         handleSelectConversation,
         handleUpdateConversation,
+        handleUpdateConversationMultiple
       }}
     >
       <Head>
@@ -540,6 +576,9 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
   const defaultEmbeddingModelId =
     process.env.DEFAULT_EMBEDDING_MODEL ||
       fallbackEmbeddingModelID;
+
+  const defaultMemoryType = process.env.DEFAULT_MEMORY_TYPE || MemoryType.MEMORY_SUMMARIZER
+  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType)
   let serverSidePluginKeysSet = false;
 
   const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -554,6 +593,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       serverSideApiKeyIsSet: !!process.env.OPENAI_API_KEY,
       defaultModelId,
       defaultEmbeddingModelId,
+      defaultMemoryType,
       serverSidePluginKeysSet,
       ...(await serverSideTranslations(locale ?? 'en', [
         'common',

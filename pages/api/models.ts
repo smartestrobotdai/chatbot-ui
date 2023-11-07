@@ -52,7 +52,8 @@ const handler = async (req: Request): Promise<Response> => {
           return {
             id: model.id,
             name: model.name,
-            type: model.type
+            type: model.type,
+            tokenLimit: model.max_tokens,
           };
       })
       .filter(Boolean);

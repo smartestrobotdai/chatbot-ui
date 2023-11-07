@@ -1,5 +1,5 @@
 import { IconExternalLink } from '@tabler/icons-react';
-import { useContext } from 'react';
+import { FC, useContext } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -7,24 +7,59 @@ import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
 
-export const ModelSelect = ({disabled = false, type='chat', title='Model'}) => {
+interface ModelSelectProps {
+  setSelectedModel?: (model: OpenAIModel) => void; // This indicates setSelectedModel is an optional function prop.
+  disabled?: boolean;
+  type?: 'chat' | 'text-embedding'; // Replace 'anotherType' with other possible types.
+  title?: string;
+}
+
+
+export const ModelSelect:FC<ModelSelectProps>  = ({ setSelectedModel, disabled = false, type = 'chat', title = 'Model' }) => {
   const { t } = useTranslation('chat');
 
   const {
     state: { selectedConversation, models, defaultModelId },
-    handleUpdateConversation,
+    handleUpdateConversationMultiple,
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     // to check if apikey is set or serverSideApiKeyisSet is true
-    selectedConversation &&
-      handleUpdateConversation(selectedConversation, {
-        key: type==='chat' ? 'model':'embeddingModel',
-        value: models.find(
-          (model) => model.id === e.target.value,
-        ) as OpenAIModel,
-      });
+    const model = models.find(
+      (model) => model.id === e.target.value,
+    ) as OpenAIModel
+
+    if (model.type==='chat' && model !== selectedConversation?.model) {
+      //setSelectedModel && setSelectedModel(model)
+      if (selectedConversation) {
+        console.log('update!')
+        handleUpdateConversationMultiple(selectedConversation, [{
+            key: 'model',
+            value: model
+          },
+          {
+            key: 'maxInputTokens',
+            value: model.tokenLimit - 512
+          },
+          {
+            key: 'maxMemoryTokens',
+            value: model.tokenLimit/4
+          },
+          {
+            key: 'maxSearchTokens',
+            value: model.tokenLimit/4
+          },
+          {
+            key: 'maxDocumentTokens',
+            value: model.tokenLimit/4
+          }
+        ]);
+      }
+        
+
+    }
+
   };
 
   return (
@@ -55,7 +90,7 @@ export const ModelSelect = ({disabled = false, type='chat', title='Model'}) => {
         </select>
       </div>
       {
-        selectedConversation?.model?.id.includes('gpt') &&
+       type==='chat' && selectedConversation?.model?.id.includes('gpt') &&
         <div className="w-full mt-3 text-left text-neutral-700 dark:text-neutral-400 flex items-center">
           <a
             href="https://platform.openai.com/account/usage"

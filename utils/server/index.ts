@@ -30,11 +30,14 @@ export const OpenAIStream = async (
   model: OpenAIModel,
   embeddingModel: OpenAIModel,
   prompt: string, 
-  temperature: number, 
+  temperature: number,
+  memoryType: string,
   key: string,
   serviceId: string|null,
   clientId: string|null,
   query: string,
+  googleAPIKey:string|null = null, 
+  googleCSEId:string|null=null
 ) => {
   // printout all input parameters:
   console.log('firstMesaage', firstMesaage)
@@ -46,14 +49,18 @@ export const OpenAIStream = async (
   console.log('key', key)
   console.log('serviceId', serviceId)
   console.log('clientId', clientId)
-  console.log('query', query)
-
-
+  console.log('MemoryType', memoryType)
+  console.log('googleAPIKey', googleAPIKey)
+  console.log('googleCSEId', googleCSEId)
+  // print the first 100 characters of the query
+  console.log('query (first 100 characters):', query.substring(0,100))
   if (firstMesaage && !shared) {
     // update the service if the conversation is not shared and this is the first message
     console.log('The first message, update the service')
-    const url = `${OPENAI_API_HOST}/v1/services/${serviceId}?clientId=${clientId}`;
-    const payload = JSON.stringify({model: model.id, "embedding-model": embeddingModel.id, prompt, temperature})
+    const url = `${OPENAI_API_HOST}/v1/services/${serviceId}?client_id=${clientId}`;
+    const payload = JSON.stringify({model: model.id, "embedding_model": 
+      embeddingModel.id, prompt,
+      temperature, "memory_type": memoryType})
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -61,23 +68,23 @@ export const OpenAIStream = async (
       },
       body: payload,
     })
-    console.log('response', response)
-    if (response.status === 401) {
-      return new Response(response.body, {
-        status: 401,
-        headers: response.headers,
-      });
-    } else if (response.status !== 200) {
+
+    if (response.status !== 200) {
+      const errorText = await response.text();
       console.error(
         `OpenAI API returned an error ${
           response.status
-        }: ${await response.text()}`,
+        }: ${errorText}`,
       );
-      throw new Error('OpenAI API returned an error');
+      
+      throw ({statusCode: response.status, statusText: errorText});
     }
   }
 
   let url = `${OPENAI_API_HOST}/v1/services/${serviceId}/clients/${clientId}/chat`;
+  if (googleAPIKey && googleCSEId) {
+    url += '?search_enabled=true'
+  }
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
@@ -90,56 +97,41 @@ export const OpenAIStream = async (
       ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
         'OpenAI-Organization': OPENAI_ORGANIZATION,
       }),
+      ...(googleAPIKey && {
+        'Google-Api-Key': googleAPIKey!
+      }),
+      ...(googleCSEId && {
+        'Google-Cse-Id': googleCSEId!
+      }),
     },
     method: 'POST',
     body: JSON.stringify({
       query
     }),
-  });
+  })
   console.log('url', url)
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
 
   if (res.status !== 200) {
     console.log('status: ', res.status)
     const result = await res.json();
-    if (result.error) {
-      throw new OpenAIError(
-        result.error.message,
-        result.error.type,
-        result.error.param,
-        result.error.code,
-      );
-    } else {
-      throw new Error(
-        `OpenAI API returned an error: ${
-          decoder.decode(result?.value) || result.statusText
-        }`,
-      );
-    }
+    throw {statusCode: res.status, statusText: result.message || `${JSON.stringify(result)}`};
   }
   console.log('Readable:', ReadableStream.toString());
   const stream = new ReadableStream({
     async start(controller) {
       let buffer = "";
       for await (const chunk of res.body as any) {
-        
         buffer += decoder.decode(chunk);
-        
         if (buffer.trim().endsWith("}")) {
           //buffer = buffer.replace(/\n/g, '');
           buffer = buffer.replace(/data: /g, '');
-
-          
           const regex = /"content":\s*"((?:\\"|[^"])*)"/g;
-
           let match;
-          
-          
           while ((match = regex.exec(buffer)) !== null) {
             controller.enqueue(encoder.encode(match[1]));
           }
-          
           buffer = "";
         }
       }

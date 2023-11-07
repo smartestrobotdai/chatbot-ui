@@ -1,3 +1,4 @@
+import { MemoryType } from './memoryType';
 import { OpenAIModel } from './openai';
 
 export interface Message {
@@ -14,6 +15,7 @@ export interface ChatBody {
   key: string;
   prompt: string;
   temperature: number;
+  memoryType: MemoryType;
 }
 
 export interface Conversation {
@@ -28,4 +30,5 @@ export interface Conversation {
   folderId: string | null;
   shared: boolean;
   files: string[];
+  memoryType: MemoryType;
 }
