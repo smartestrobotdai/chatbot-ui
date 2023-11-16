@@ -6,6 +6,7 @@ import { useTranslation } from 'next-i18next';
 import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
+import { Conversation } from '@/types/chat';
 
 interface ModelSelectProps {
   setSelectedModel?: (model: OpenAIModel) => void; // This indicates setSelectedModel is an optional function prop.
@@ -15,7 +16,18 @@ interface ModelSelectProps {
 }
 
 
-export const ModelSelect:FC<ModelSelectProps>  = ({ setSelectedModel, disabled = false, type = 'chat', title = 'Model' }) => {
+export const ModelSelect:FC<ModelSelectProps>  = ({ setSelectedModel, disabled = false, 
+  type = 'chat', title = 'Model' }) => {
+  type SelectedConversationKey = keyof Conversation;
+  let keyName:SelectedConversationKey = 'model'
+  if (type === 'chat') {
+    keyName = 'model'
+  } else if (type === 'text-embedding') {
+    keyName = 'embeddingModel'
+  } else {
+    throw new Error('Invalid type')
+  }
+
   const { t } = useTranslation('chat');
 
   const {
@@ -30,34 +42,15 @@ export const ModelSelect:FC<ModelSelectProps>  = ({ setSelectedModel, disabled =
       (model) => model.id === e.target.value,
     ) as OpenAIModel
 
-    if (model.type==='chat' && model !== selectedConversation?.model) {
+    if (model !== selectedConversation?.[keyName]) {
       //setSelectedModel && setSelectedModel(model)
       if (selectedConversation) {
-        console.log('update!')
         handleUpdateConversationMultiple(selectedConversation, [{
-            key: 'model',
+            key: keyName,
             value: model
           },
-          {
-            key: 'maxInputTokens',
-            value: model.tokenLimit - 512
-          },
-          {
-            key: 'maxMemoryTokens',
-            value: model.tokenLimit/4
-          },
-          {
-            key: 'maxSearchTokens',
-            value: model.tokenLimit/4
-          },
-          {
-            key: 'maxDocumentTokens',
-            value: model.tokenLimit/4
-          }
         ]);
       }
-        
-
     }
 
   };

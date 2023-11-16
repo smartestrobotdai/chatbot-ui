@@ -21,6 +21,8 @@ export const CodeBlock: FC<Props> = memo(({ language, value }) => {
 
   const copyToClipboard = () => {
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      // alert user that their browser doesn't support this feature
+      alert(t('Your browser does not support this feature') || '')
       return;
     }
 

@@ -20,7 +20,10 @@ import { CodeBlock } from '../Markdown/CodeBlock';
 import { MemoizedReactMarkdown } from '../Markdown/MemoizedReactMarkdown';
 
 import remarkGfm from 'remark-gfm';
+
+
 import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 
 export interface Props {
@@ -124,14 +127,30 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
     }
   }, [isEditing]);
   
-  const unescapeUnicode = (str:any) => {
-    return JSON.parse(`"${str}"`);
+  const unescapeUnicode = (str: any) => {
+    return str.replace(/\\u[\dA-F]{4}/gi, (match: any) => {
+      return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+    });
   };
+  
+  // const processMessageContent = (messageContent: string) => {
+  //   console.log('messageContent', messageContent)
+  //   let replacedNewLines = messageContent.replace(/\\n/g, '  \n');
+  //   let replaceMathSign = replacedNewLines.replace(/\\\\\(/g, '$')
+  //   replaceMathSign = replaceMathSign.replace(/\\\\\)/g, '$')
+  //   // Avoid altering LaTeX parts
+  //   // Add any additional processing that does not interfere with LaTeX syntax
+  //   console.log('replaceMathSign', replaceMathSign)
+  //   //return replaceMathSign;
+  //   return replaceMathSign
+  // };
+
 
   const processMessageContent = (messageContent: string) => {
     const hasUnicodeEscape = messageContent.includes('\\u');
     const replacedNewLines = messageContent.replace(/\\n/g, '  \n');
-    return hasUnicodeEscape ? unescapeUnicode(messageContent) : replacedNewLines;
+    const replacedQuotes = replacedNewLines.replace(/\\"/g, '"');
+    return hasUnicodeEscape ? unescapeUnicode(replacedQuotes) : replacedQuotes;
   };
 
   return (
@@ -221,7 +240,9 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
             <div className="flex flex-row">
               <MemoizedReactMarkdown
                 className="prose dark:prose-invert flex-1"
+                //remarkPlugins={[remarkGfm, remarkMath]}
                 remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
                 components={{
                   code({ node, className, children, ...props }) {
                     if (children && Array.isArray(children)  && children.length) {
@@ -272,8 +293,10 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
               {`${processMessageContent(message.content)}${
                 messageIsStreaming && messageIndex === (selectedConversation?.messages.length ?? 0) - 1 ? '▍' : ''
               }`}
+              
+              
               </MemoizedReactMarkdown>
-
+              
               <div className="md:-mr-8 ml-1 md:ml-0 flex flex-col md:flex-row gap-4 md:gap-1 items-center md:items-start justify-end md:justify-start">
                 {messagedCopied ? (
                   <IconCheck

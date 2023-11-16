@@ -2,10 +2,11 @@ import { FC, useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { Plugin, PluginList } from '@/types/plugin';
+import { Plugin, PluginKey, PluginList } from '@/types/plugin';
 
 interface Props {
   plugin: Plugin | null;
+  pluginKeys: PluginKey[];
   onPluginChange: (plugin: Plugin) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLSelectElement>) => void;
 }

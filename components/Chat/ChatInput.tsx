@@ -52,7 +52,10 @@ export const ChatInput = ({
   const { t } = useTranslation('chat');
 
   const {
-    state: { selectedConversation, messageIsStreaming, prompts },
+    state: { selectedConversation, 
+      messageIsStreaming, 
+      prompts, 
+      pluginKeys},
 
     dispatch: homeDispatch,
   } = useContext(HomeContext);
@@ -312,6 +315,7 @@ export const ChatInput = ({
             <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">
               <PluginSelect
                 plugin={plugin}
+                pluginKeys={pluginKeys}
                 onKeyDown={(e: any) => {
                   if (e.key === 'Escape') {
                     e.preventDefault();
