@@ -148,9 +148,10 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
 
   const processMessageContent = (messageContent: string) => {
     const hasUnicodeEscape = messageContent.includes('\\u');
-    const replacedNewLines = messageContent.replace(/\\n/g, '  \n');
+    const replacedNewLines = messageContent.replace(/\\n/g, '  \n').replace(/\\;/g, ';');
     const replacedQuotes = replacedNewLines.replace(/\\"/g, '"');
-    return hasUnicodeEscape ? unescapeUnicode(replacedQuotes) : replacedQuotes;
+    const final = hasUnicodeEscape ? unescapeUnicode(replacedQuotes) : replacedQuotes;
+    return final
   };
 
   return (
