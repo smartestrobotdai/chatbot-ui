@@ -376,7 +376,7 @@ const Home = ({
 
   useEffect(() => {
     
-    dispatch({ field: 'enableAzureOpenAI', value: enableOpenAI });
+    dispatch({ field: 'enableAzureOpenAI', value: enableAzureOpenAI });
   }, [enableAzureOpenAI, dispatch]);
 
   useEffect(() => {
@@ -601,7 +601,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       fallbackEmbeddingModelID;
 
   const defaultMemoryType = process.env.DEFAULT_MEMORY_TYPE || MemoryType.MEMORY_SUMMARIZER
-  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType, enableOpenAI)
+  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType, enableOpenAI, enableAzureOpenAI)
   let serverSidePluginKeysSet = false;
 
   const googleApiKey = process.env.GOOGLE_API_KEY;

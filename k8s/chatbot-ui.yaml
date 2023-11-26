@@ -25,7 +25,7 @@ spec:
             value: "http://llm-service:5000"
           - name: ENABLE_OPENAI
             value: "false"
-          - name ENABLE_AZURE_OPENAI
+          - name: ENABLE_AZURE_OPENAI
             value: "true"
         imagePullPolicy: Always  # Add this line
       imagePullSecrets:
