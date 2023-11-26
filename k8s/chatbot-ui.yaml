@@ -16,13 +16,17 @@ spec:
     spec:
       containers:
       - name: chatbot-ui
-        image: meuwbidsdevmlwcr.azurecr.io/llm-chatbot:01
+        image: meuwbidsdevmlwcr.azurecr.io/llm-chatbot:231126
         resources: {}
         ports:
           - containerPort: 3000
         env:
           - name: OPENAI_API_HOST
             value: "http://llm-service:5000"
+          - name: ENABLE_OPENAI
+            value: "false"
+          - name ENABLE_AZURE_OPENAI
+            value: "true"
         imagePullPolicy: Always  # Add this line
       imagePullSecrets:
       - name: azure-regcred

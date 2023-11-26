@@ -49,7 +49,6 @@ const handler = async (req: Request): Promise<Response> => {
       isPost = true
     }
     
-    console.log('body', body)
     let url = `${OPENAI_API_HOST}/v1/services`;
     const requestUrl = new URL(req.url)
     const clientId = requestUrl.searchParams.get('clientId');

@@ -150,7 +150,11 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
     const hasUnicodeEscape = messageContent.includes('\\u');
     const replacedNewLines = messageContent.replace(/\\n/g, '  \n').replace(/\\;/g, ';');
     const replacedQuotes = replacedNewLines.replace(/\\"/g, '"');
-    const final = hasUnicodeEscape ? unescapeUnicode(replacedQuotes) : replacedQuotes;
+    let replaceMathSign = replacedQuotes.replace(/\\\\\(/g, '$')
+    replaceMathSign = replaceMathSign.replace(/\\\\\)/g, '$')
+    replaceMathSign = replaceMathSign.replace(/\\\\\[/g, '$')
+    replaceMathSign = replaceMathSign.replace(/\\\\\]/g, '$')
+    const final = hasUnicodeEscape ? unescapeUnicode(replaceMathSign) : replaceMathSign;
     return final
   };
 

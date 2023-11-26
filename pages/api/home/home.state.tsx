@@ -8,6 +8,7 @@ import { Prompt } from '@/types/prompt';
 
 export interface HomeInitialState {
   apiKey: string;
+  azureApiKey: string;
   pluginKeys: PluginKey[];
   loading: boolean;
   lightMode: 'light' | 'dark';
@@ -24,6 +25,8 @@ export interface HomeInitialState {
   showPromptbar: boolean;
   currentFolder: FolderInterface | undefined;
   messageError: boolean;
+  enableOpenAI: boolean;
+  enableAzureOpenAI: boolean;
   searchTerm: string;
   defaultModelId: OpenAIModelID | undefined;
   defaultEmbeddingModelId: OpenAIModelID | undefined;
@@ -34,6 +37,7 @@ export interface HomeInitialState {
 
 export const initialState: HomeInitialState = {
   apiKey: '',
+  azureApiKey: '',
   loading: false,
   pluginKeys: [],
   lightMode: 'dark',
@@ -50,6 +54,8 @@ export const initialState: HomeInitialState = {
   showChatbar: true,
   currentFolder: undefined,
   messageError: false,
+  enableOpenAI: true,
+  enableAzureOpenAI: true,
   searchTerm: '',
   defaultModelId: undefined,
   defaultEmbeddingModelId: undefined,

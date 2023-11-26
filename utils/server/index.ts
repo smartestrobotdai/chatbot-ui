@@ -109,7 +109,7 @@ export const OpenAIStream = async (
       query
     }),
   })
-  console.log('url', url)
+
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
 
@@ -123,23 +123,13 @@ export const OpenAIStream = async (
     async start(controller) {
       let buffer = "";
       for await (const chunk of res.body as any) {
-        buffer += decoder.decode(chunk);
-        if (buffer.trim().endsWith("}")) {
-          //buffer = buffer.replace(/\n/g, '');
-          buffer = buffer.replace(/data: /g, '');
-          const regex = /"content":\s*"((?:\\"|[^"])*)"/g;
-          let match;
-          while ((match = regex.exec(buffer)) !== null) {
-            controller.enqueue(encoder.encode(match[1]));
-          }
-          buffer = "";
-        }
+        buffer = decoder.decode(chunk);
+        controller.enqueue(encoder.encode(buffer));
       }
       console.log('closed')
       controller.close();
     },
   });
 
-  console.log('stream returned from OpenAIStream', stream)
   return stream;
 };

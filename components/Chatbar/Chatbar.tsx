@@ -57,6 +57,15 @@ export const Chatbar = () => {
     [homeDispatch],
   );
 
+  const handleAzureApiKeyChange = useCallback(
+    (azureApiKey: string) => {
+      homeDispatch({ field: 'azureApiKey', value: azureApiKey });
+
+      localStorage.setItem('azureApiKey', azureApiKey);
+    },
+    [homeDispatch],
+  );
+
   const handlePluginKeyChange = (pluginKey: PluginKey) => {
     if (pluginKeys.some((key) => key.pluginId === pluginKey.pluginId)) {
       const updatedPluginKeys = pluginKeys.map((key) => {
@@ -249,6 +258,7 @@ export const Chatbar = () => {
         handlePluginKeyChange,
         handleClearPluginKey,
         handleApiKeyChange,
+        handleAzureApiKeyChange,
       }}
     >
       <Sidebar<Conversation>

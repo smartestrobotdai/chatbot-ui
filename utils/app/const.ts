@@ -22,3 +22,7 @@ export const OPENAI_ORGANIZATION =
 
 export const AZURE_DEPLOYMENT_ID =
   process.env.AZURE_DEPLOYMENT_ID || '';
+
+// if ENABLE_OPENAI is set and is true, then enable openai, 
+// if ENABLE_OPENAI is not set, then enable openai
+export const ENABLE_OPENAI = process.env.ENABLE_OPENAI === undefined || process.env.ENABLE_OPENAI === 'true'

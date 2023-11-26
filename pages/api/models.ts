@@ -1,4 +1,4 @@
-import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '@/utils/app/const';
+import { OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION, ENABLE_OPENAI } from '@/utils/app/const';
 
 import { OpenAIModel } from '@/types/openai';
 
@@ -46,8 +46,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('OpenAI API returned an error');
     }
 
+    //const ENABLE_OPENAI = process.env.ENABLE_OPENAI === undefined || process.env.ENABLE_OPENAI === 'true'
     const json = await response.json();
     const models: OpenAIModel[] = json.data
+      .filter((model: any) => (!ENABLE_OPENAI && !model.endpoint.includes('api.openai.com') || ENABLE_OPENAI))
       .map((model: any) => {
           return {
             id: model.id,

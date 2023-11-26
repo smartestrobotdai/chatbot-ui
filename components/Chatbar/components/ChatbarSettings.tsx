@@ -15,6 +15,7 @@ import { ClearConversations } from './ClearConversations';
 import { PluginKeys } from './PluginKeys';
 
 export const ChatbarSettings = () => {
+
   const { t } = useTranslation('sidebar');
   const [isSettingDialogOpen, setIsSettingDialog] = useState<boolean>(false);
 
@@ -22,6 +23,8 @@ export const ChatbarSettings = () => {
     state: {
       apiKey,
       lightMode,
+      enableOpenAI,
+      enableAzureOpenAI,
       serverSideApiKeyIsSet,
       serverSidePluginKeysSet,
       conversations,
@@ -34,6 +37,7 @@ export const ChatbarSettings = () => {
     handleImportConversations,
     handleExportData,
     handleApiKeyChange,
+    handleAzureApiKeyChange,
   } = useContext(ChatbarContext);
 
   return (
@@ -56,8 +60,12 @@ export const ChatbarSettings = () => {
         onClick={() => setIsSettingDialog(true)}
       />
 
-      {!serverSideApiKeyIsSet ? (
-        <Key apiKey={apiKey} onApiKeyChange={handleApiKeyChange} />
+      {(!serverSideApiKeyIsSet && enableOpenAI) ? (
+        <Key isAzure={false} apiKey={apiKey} onApiKeyChange={handleApiKeyChange} />
+      ) : null}
+
+    {(!serverSideApiKeyIsSet && enableAzureOpenAI) ? (
+        <Key isAzure={true} apiKey={apiKey} onApiKeyChange={handleAzureApiKeyChange} />
       ) : null}
 
       {!serverSidePluginKeysSet ? <PluginKeys /> : null}
@@ -71,3 +79,5 @@ export const ChatbarSettings = () => {
     </div>
   );
 };
+
+

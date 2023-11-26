@@ -49,6 +49,8 @@ interface Props {
   defaultModelId: OpenAIModelID;
   defaultEmbeddingModelId: OpenAIModelID;
   defaultMemoryType: MemoryType;
+  enableOpenAI: boolean;
+  enableAzureOpenAI: boolean;
 }
 
 const Home = ({
@@ -56,7 +58,9 @@ const Home = ({
   serverSidePluginKeysSet,
   defaultModelId,
   defaultEmbeddingModelId,
-  defaultMemoryType
+  defaultMemoryType,
+  enableOpenAI,
+  enableAzureOpenAI
 }: Props) => {
   const { t } = useTranslation('chat');
   const { getModels, getConversations } = useApiService();
@@ -71,6 +75,7 @@ const Home = ({
   const {
     state: {
       apiKey,
+      azureApiKey,
       lightMode,
       folders,
       conversations,
@@ -364,6 +369,15 @@ const Home = ({
   
   
   // EFFECTS  --------------------------------------------
+  useEffect(() => {
+    
+    dispatch({ field: 'enableOpenAI', value: enableOpenAI });
+  }, [enableOpenAI, dispatch]);
+
+  useEffect(() => {
+    
+    dispatch({ field: 'enableAzureOpenAI', value: enableOpenAI });
+  }, [enableAzureOpenAI, dispatch]);
 
   useEffect(() => {
     if (window.innerWidth < 640) {
@@ -391,7 +405,7 @@ const Home = ({
   useEffect(() => {
     console.log("useEffect ran due to:", { 
       defaultModelId, 
-      dispatch, 
+      dispatch,
       serverSideApiKeyIsSet, 
       serverSidePluginKeysSet 
     });
@@ -411,6 +425,12 @@ const Home = ({
       localStorage.removeItem('apiKey');
     } else if (apiKey) {
       dispatch({ field: 'apiKey', value: apiKey });
+    }
+
+    const azureApiKey = localStorage.getItem('azureApiKey');
+
+    if (azureApiKey) {
+      dispatch({ field: 'azureApiKey', value: azureApiKey });
     }
 
     const pluginKeys = localStorage.getItem('pluginKeys');
@@ -569,6 +589,9 @@ const Home = ({
 export default Home;
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  const enableOpenAI = process.env.ENABLE_OPENAI === undefined || process.env.ENABLE_OPENAI === 'true'
+  const enableAzureOpenAI = process.env.ENABLE_AZURE_OPENAI === undefined || process.env.ENABLE_AZURE_OPENAI === 'true'
+
   const defaultModelId =
     process.env.DEFAULT_MODEL ||
     fallbackModelID;
@@ -578,7 +601,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       fallbackEmbeddingModelID;
 
   const defaultMemoryType = process.env.DEFAULT_MEMORY_TYPE || MemoryType.MEMORY_SUMMARIZER
-  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType)
+  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType, enableOpenAI)
   let serverSidePluginKeysSet = false;
 
   const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -595,6 +618,8 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       defaultEmbeddingModelId,
       defaultMemoryType,
       serverSidePluginKeysSet,
+      enableOpenAI,
+      enableAzureOpenAI,
       ...(await serverSideTranslations(locale ?? 'en', [
         'common',
         'chat',

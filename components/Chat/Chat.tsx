@@ -56,6 +56,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       conversations,
       models,
       apiKey,
+      azureApiKey,
       pluginKeys,
       serverSideApiKeyIsSet,
       messageIsStreaming,
@@ -159,11 +160,16 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         });
         homeDispatch({ field: 'loading', value: true });
         homeDispatch({ field: 'messageIsStreaming', value: true });
+        console.log('modelname ', updatedConversation.model.name)
+        console.log('apikey', apiKey)
+        console.log('azureapikey', azureApiKey)
+        const key = updatedConversation.model.name.includes('AZURE') ? azureApiKey : apiKey;
+        console.log('key', key)
         const chatBody: ChatBody = {
           model: updatedConversation.model,
           embeddingModel: updatedConversation.embeddingModel,
           messages: updatedConversation.messages,
-          key: apiKey,
+          key: key,
           prompt: updatedConversation.prompt,
           temperature: updatedConversation.temperature,
           memoryType: updatedConversation.memoryType,
