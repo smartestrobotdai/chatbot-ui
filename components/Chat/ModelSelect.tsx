@@ -52,7 +52,7 @@ export const ModelSelect:FC<ModelSelectProps>  = ({ setSelectedModel, disabled =
         ]);
       }
     }
-
+    setSelectedModel && setSelectedModel(model)
   };
 
   return (

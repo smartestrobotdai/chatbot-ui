@@ -20,7 +20,7 @@ import {
 
 import { useTranslation } from 'next-i18next';
 
-import { Message } from '@/types/chat';
+import { ContentElement, MultimodalMessage, Role } from '@/types/chat';
 import { Plugin } from '@/types/plugin';
 import { Prompt } from '@/types/prompt';
 
@@ -31,7 +31,7 @@ import { PromptList } from './PromptList';
 import { VariableModal } from './VariableModal';
 
 interface Props {
-  onSend: (message: Message, plugin: Plugin | null) => void;
+  onSend: (message: MultimodalMessage, plugin: Plugin | null) => void;
   onEmbed: (files: File[]) => void;
   onRegenerate: () => void;
   onScrollDownClick: () => void;
@@ -49,6 +49,9 @@ export const ChatInput = ({
   textareaRef,
   showScrollDownButton,
 }: Props) => {
+  const [imageThumbnails, setImageThumbnails] = useState<string[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const { t } = useTranslation('chat');
 
   const {
@@ -94,17 +97,38 @@ export const ChatInput = ({
     updatePromptListVisibility(value);
   };
 
+  function processImage(file: any) {
+    console.log('processImage');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (result) {
+        setImageThumbnails((prevThumbnails) => [...prevThumbnails, result.toString()]);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   const handleEmbed = () => {
     // popup file dialog and ask the user to select one or more pdf files
     console.log('handleEmbed')
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    input.accept = 'application/pdf';
+    input.accept = 'application/pdf,image/jpeg,image/png';
     input.onchange = (e: any) => {
       const files = e.target.files;
       if (files) {
-        onEmbed(files)
+        Array.from(files).forEach((file: any) => {
+          if (file.type === 'application/pdf') {
+            // Process PDF file
+            onEmbed([file]);
+          } else if (file.type === 'image/jpeg' || file.type === 'image/png') {
+            // Process image file
+            processImage(file);
+          }
+        });
+        (files)
       }
     }
     input.click()
@@ -120,8 +144,27 @@ export const ChatInput = ({
       return;
     }
 
-    onSend({ role: 'user', content }, plugin);
+    const payload: MultimodalMessage = {role: 'user' as Role, content: [
+      {
+        type: 'text',
+        text: content
+      }
+    ]}
+
+    if (imageThumbnails.length > 0) {
+      (payload.content as ContentElement[]).push({
+        type: 'image',
+        image_url: {
+          url: `data:image/jpeg;base64,${imageThumbnails[0]}`, 
+        }
+      })
+    }
+  
+
+    onSend(payload, plugin);
     setContent('');
+    // remove all imagethumbnails
+    setImageThumbnails([]);
     setPlugin(null);
 
     if (window.innerWidth < 640 && textareaRef && textareaRef.current) {
@@ -279,8 +322,63 @@ export const ChatInput = ({
     };
   }, []);
 
+
+  const ImageThumbnail = ({ src, onDelete }: any) => (
+    <div 
+      className="inline-block p-1 border rounded cursor-pointer  relative" 
+      onClick={() => {
+        setSelectedImage(src);
+        setIsModalOpen(true);
+      }}
+    >
+      <img src={src} alt="thumbnail" className="w-8 h-8 mb-4 object-cover" />
+      <div 
+      className="absolute top-0 right-0 bg-red-500 text-white cursor-pointer" 
+      onClick={(e) => {
+        e.stopPropagation();
+        onDelete(src);
+      }}
+    >
+      X
+    </div>
+    </div>
+  );
+
+  function deleteThumbnail(src: string) {
+    setImageThumbnails((prevThumbnails) => prevThumbnails.filter(thumbnail => thumbnail !== src));
+  }
+
   return (
     <div className="absolute bottom-0 left-0 w-full border-transparent bg-gradient-to-b from-transparent via-white to-white pt-6 dark:border-white/20 dark:via-[#343541] dark:to-[#343541] md:pt-2">
+      {isModalOpen && selectedImage && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <img src={selectedImage} alt="Full size" className="w-full object-cover" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button 
+                  type="button" 
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" 
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}      
+        
       <div className="stretch mx-2 mt-4 flex flex-row gap-3 last:mb-2 md:mx-4 md:mt-[52px] md:last:mb-6 lg:mx-auto lg:max-w-3xl">
         {messageIsStreaming && (
           <button
@@ -301,116 +399,122 @@ export const ChatInput = ({
               <IconRepeat size={16} /> {t('Regenerate response')}
             </button>
           )}
-
-        <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
-          <button
-            className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-            onClick={() => setShowPluginSelect(!showPluginSelect)}
-            onKeyDown={(e) => {}}
-          >
-            {plugin ? <IconBrandGoogle size={20} /> : <IconBolt size={20} />}
-          </button>
-
-          {showPluginSelect && (
-            <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">
-              <PluginSelect
-                plugin={plugin}
-                pluginKeys={pluginKeys}
-                onKeyDown={(e: any) => {
-                  if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setShowPluginSelect(false);
-                    textareaRef.current?.focus();
-                  }
-                }}
-                onPluginChange={(plugin: Plugin) => {
-                  setPlugin(plugin);
-                  setShowPluginSelect(false);
-
-                  if (textareaRef && textareaRef.current) {
-                    textareaRef.current.focus();
-                  }
-                }}
-              />
-            </div>
-          )}
-          {selectedConversation?.folderId !== 'predefined-conversations' && 
+        <div className="relative top-0 left-0 flex flex-col right-0 mx-auto items-center w-full ">
+          <div className="relative top-0 left-0 right-0 mx-auto items-center w-full h-16">
+            {imageThumbnails && imageThumbnails.map((src: any) => (
+              <ImageThumbnail src={src} onDelete={deleteThumbnail} />
+            ))}
+          </div>
+          <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
             <button
-              className="absolute left-8 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-              style={{ fontSize: '1.2rem', width: '24px', height: '24px' }}
-              onClick={handleEmbed}
-              title="Embed files"
+              className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+              onClick={() => setShowPluginSelect(!showPluginSelect)}
+              onKeyDown={(e) => {}}
             >
-              <span>+</span>
+              {plugin ? <IconBrandGoogle size={20} /> : <IconBolt size={20} />}
             </button>
-          }
-          <textarea
-            ref={textareaRef}
-            className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pr-16 pl-14 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-14"
-            style={{
-              resize: 'none',
-              bottom: `${textareaRef?.current?.scrollHeight}px`,
-              maxHeight: '400px',
-              overflow: `${
-                textareaRef.current && textareaRef.current.scrollHeight > 400
-                  ? 'auto'
-                  : 'hidden'
-              }`,
-            }}
-            placeholder={
-              t('Type a message or type "/" to select a prompt...') || ''
-            }
-            value={content}
-            rows={1}
-            onCompositionStart={() => setIsTyping(true)}
-            onCompositionEnd={() => setIsTyping(false)}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-          />
 
-          <button
-            className="absolute right-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-            onClick={handleSend}
-            title="Send"
-          >
-            {messageIsStreaming ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-t-2 border-neutral-800 opacity-60 dark:border-neutral-100"></div>
-            ) : (
-              <IconSend size={18} />
+            {showPluginSelect && (
+              <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">
+                <PluginSelect
+                  plugin={plugin}
+                  pluginKeys={pluginKeys}
+                  onKeyDown={(e: any) => {
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setShowPluginSelect(false);
+                      textareaRef.current?.focus();
+                    }
+                  }}
+                  onPluginChange={(plugin: Plugin) => {
+                    setPlugin(plugin);
+                    setShowPluginSelect(false);
+
+                    if (textareaRef && textareaRef.current) {
+                      textareaRef.current.focus();
+                    }
+                  }}
+                />
+              </div>
             )}
-          </button>
-
-          {showScrollDownButton && (
-            <div className="absolute bottom-12 right-0 lg:bottom-0 lg:-right-10">
+            {selectedConversation?.folderId !== 'predefined-conversations' && 
               <button
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-300 text-gray-800 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-neutral-200"
-                onClick={onScrollDownClick}
-              >
-                <IconArrowDown size={18} />
+                className="absolute left-8 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+                style={{ fontSize: '1.2rem', width: '24px', height: '24px' }}
+                onClick={handleEmbed}
+                title="Embed files"
+              > 
+                <span>+</span>
               </button>
-            </div>
-          )}
-
-          {showPromptList && filteredPrompts.length > 0 && (
-            <div className="absolute bottom-12 w-full">
-              <PromptList
-                activePromptIndex={activePromptIndex}
-                prompts={filteredPrompts}
-                onSelect={handleInitModal}
-                onMouseOver={setActivePromptIndex}
-                promptListRef={promptListRef}
-              />
-            </div>
-          )}
-
-          {isModalVisible && (
-            <VariableModal
-              prompt={filteredPrompts[activePromptIndex]}
-              variables={variables}
-              onSubmit={handleSubmit}
-              onClose={() => setIsModalVisible(false)}
+            }
+            <textarea
+              ref={textareaRef}
+              className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pr-16 pl-14 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-14"
+              style={{
+                resize: 'none',
+                bottom: `${textareaRef?.current?.scrollHeight}px`,
+                maxHeight: '400px',
+                overflow: `${
+                  textareaRef.current && textareaRef.current.scrollHeight > 400
+                    ? 'auto'
+                    : 'hidden'
+                }`,
+              }}
+              placeholder={
+                t('Type a message or type "/" to select a prompt...') || ''
+              }
+              value={content}
+              rows={1}
+              onCompositionStart={() => setIsTyping(true)}
+              onCompositionEnd={() => setIsTyping(false)}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
             />
-          )}
+
+            <button
+              className="absolute right-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+              onClick={handleSend}
+              title="Send"
+            >
+              {messageIsStreaming ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-t-2 border-neutral-800 opacity-60 dark:border-neutral-100"></div>
+              ) : (
+                <IconSend size={18} />
+              )}
+            </button>
+
+            {showScrollDownButton && (
+              <div className="absolute bottom-12 right-0 lg:bottom-0 lg:-right-10">
+                <button
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-300 text-gray-800 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-neutral-200"
+                  onClick={onScrollDownClick}
+                >
+                  <IconArrowDown size={18} />
+                </button>
+              </div>
+            )}
+
+            {showPromptList && filteredPrompts.length > 0 && (
+              <div className="absolute bottom-12 w-full">
+                <PromptList
+                  activePromptIndex={activePromptIndex}
+                  prompts={filteredPrompts}
+                  onSelect={handleInitModal}
+                  onMouseOver={setActivePromptIndex}
+                  promptListRef={promptListRef}
+                />
+              </div>
+            )}
+
+            {isModalVisible && (
+              <VariableModal
+                prompt={filteredPrompts[activePromptIndex]}
+                variables={variables}
+                onSubmit={handleSubmit}
+                onClose={() => setIsModalVisible(false)}
+              />
+            )}
+          </div>
         </div>
       </div>
       <div className="px-3 pt-2 pb-3 text-center text-[12px] text-black/50 dark:text-white/50 md:px-4 md:pt-3 md:pb-6">

@@ -1,4 +1,4 @@
-import { Conversation, Message } from '@/types/chat';
+import { Conversation, MultimodalMessage } from '@/types/chat';
 import { ErrorMessage } from '@/types/error';
 import { FolderInterface } from '@/types/folder';
 import { MemoryType } from '@/types/memoryType';
@@ -18,7 +18,7 @@ export interface HomeInitialState {
   folders: FolderInterface[];
   conversations: Conversation[];
   selectedConversation: Conversation | undefined;
-  currentMessage: Message | undefined;
+  currentMessage: MultimodalMessage | undefined;
   prompts: Prompt[];
   temperature: number;
   showChatbar: boolean;

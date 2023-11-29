@@ -22,6 +22,7 @@ export const ChatbarSettings = () => {
   const {
     state: {
       apiKey,
+      azureApiKey,
       lightMode,
       enableOpenAI,
       enableAzureOpenAI,
@@ -65,7 +66,7 @@ export const ChatbarSettings = () => {
       ) : null}
 
     {(!serverSideApiKeyIsSet && enableAzureOpenAI) ? (
-        <Key isAzure={true} apiKey={apiKey} onApiKeyChange={handleAzureApiKeyChange} />
+        <Key isAzure={true} apiKey={azureApiKey} onApiKeyChange={handleAzureApiKeyChange} />
       ) : null}
 
       {!serverSidePluginKeysSet ? <PluginKeys /> : null}

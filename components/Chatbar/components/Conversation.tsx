@@ -136,7 +136,8 @@ export const ConversationComponent = ({ conversation }: Props) => {
               selectedConversation?.id === conversation.id ? 'pr-12' : 'pr-1'
             }`}
           >
-            {conversation.name}
+          {conversation.name}
+
           </div>
         </button>
       )}

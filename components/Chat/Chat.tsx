@@ -1,4 +1,4 @@
-import { IconClearAll, IconSettings } from '@tabler/icons-react';
+import { IconCircleX, IconClearAll, IconExclamationCircle, IconSettings, IconUserExclamation } from '@tabler/icons-react';
 import {
   MutableRefObject,
   memo,
@@ -20,24 +20,19 @@ import {
 } from '@/utils/app/conversation';
 import { throttle } from '@/utils/data/throttle';
 
-import { ChatBody, Conversation, Message } from '@/types/chat';
+import { ChatBody, Conversation, MultimodalMessage } from '@/types/chat';
 import { Plugin } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
-
-import Spinner from '../Spinner';
 import { ChatInput } from './ChatInput';
 import { ChatLoader } from './ChatLoader';
-import { ErrorMessageDiv } from './ErrorMessageDiv';
 import { ModelSelect } from './ModelSelect';
 import { SystemPrompt } from './SystemPrompt';
-import { TemperatureSlider } from './Temperature';
+import { Slider } from './Slider';
 import { MemoizedChatMessage } from './MemoizedChatMessage';
 import { getClientId } from '@/utils/app/settings';
 import FormData from 'form-data';
 import { EmbeddedFiles } from './EmbeddedFiles';
-
-import { MemoryType } from '@/types/memoryType';
 import { MemoryTypeSelect } from './MemoryTypeSelect';
 import { OpenAIModel } from '@/types/openai';
 
@@ -68,7 +63,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
-  const [currentMessage, setCurrentMessage] = useState<Message>();
+  const [currentMessage, setCurrentMessage] = useState<Message|MultimodalMessage>();
   const [autoScrollEnabled, setAutoScrollEnabled] = useState<boolean>(true);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [showScrollDownButton, setShowScrollDownButton] =
@@ -135,8 +130,14 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     }
   }
 
+  const getTextContentElement = (message: MultimodalMessage) => {
+    const textElement = message.content.filter((content) => content.type === 'text')[0]
+    console.log(textElement)
+    return textElement
+  }
+
   const handleSend = useCallback(
-    async (message: Message, deleteCount = 0, plugin: Plugin | null = null) => {
+    async (message: MultimodalMessage, deleteCount = 0, plugin: Plugin | null = null) => {
       if (selectedConversation) {
         let updatedConversation: Conversation;
         if (deleteCount) {
@@ -172,6 +173,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           key: key,
           prompt: updatedConversation.prompt,
           temperature: updatedConversation.temperature,
+          topP: updatedConversation.topP,
           memoryType: updatedConversation.memoryType,
         };
         const endpoint = getEndpoint(plugin);
@@ -209,7 +211,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           homeDispatch({ field: 'loading', value: false });
           homeDispatch({ field: 'messageIsStreaming', value: false });
           toast.error(response.statusText);
-          const updatedMessages: Message[] = [
+          const updatedMessages: MultimodalMessage[] = [
             ...updatedConversation.messages,
             { role: 'assistant', content: message.statusText },
           ];
@@ -233,9 +235,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         //if (!plugin) {
         if (true) {
           if (updatedConversation.messages.length === 1) {
-            const { content } = message;
+            const content = getTextContentElement(message)
+
             const customName =
-              content.length > 30 ? content.substring(0, 30) + '...' : content;
+              content.text?.length > 30 ? content.text.substring(0, 30) + '...' : content.text;
             updatedConversation = {
               ...updatedConversation,
               name: customName,
@@ -259,9 +262,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             text += chunkValue;
             if (isFirst) {
               isFirst = false;
-              const updatedMessages: Message[] = [
+              const updatedMessages: MultimodalMessage[] = [
                 ...updatedConversation.messages,
-                { role: 'assistant', content: chunkValue },
+                { role: 'assistant', content: [{type: 'text', text: chunkValue}] },
               ];
               updatedConversation = {
                 ...updatedConversation,
@@ -272,12 +275,12 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 value: updatedConversation,
               });
             } else {
-              const updatedMessages: Message[] =
+              const updatedMessages: MultimodalMessage[] =
                 updatedConversation.messages.map((message, index) => {
                   if (index === updatedConversation.messages.length - 1) {
                     return {
                       ...message,
-                      content: text,
+                      content: [{type: 'text', text}] ,
                     };
                   }
                   return message;
@@ -449,6 +452,16 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     };
   }, [messagesEndRef]);
 
+  function validateApiKey() {
+    const name = selectedModel?.name
+    console.log('selectedModel', selectedModel)
+    if (name?.startsWith('AZURE')) {
+      return !!azureApiKey ? '' : 'Azure OpenAI API Key is not found!'
+    } else if (name?.startsWith('GPT')) {
+      return !!apiKey ? '' : 'OpenAI API Key is not found!'
+    }
+    return ''
+  }
 
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
@@ -466,7 +479,11 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   {models.length >= 0 && (
                     <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600">
                       <ModelSelect type='chat' title='Chat Model' setSelectedModel={setSelectedModel}/>
-                      <ModelSelect type='text-embedding' title='Embedding Model' setSelectedModel={setSelectedModel}/>
+                      {validateApiKey() && <div className="flex">
+                        <IconExclamationCircle className="mr-4"/>
+                        <span>{validateApiKey()}</span>
+                      </div>}
+                      <ModelSelect type='text-embedding' title='Embedding Model' setSelectedModel={setSelectedEmbeddingModel}/>
                       <SystemPrompt
                         conversation={selectedConversation}
                         prompts={prompts}
@@ -478,14 +495,26 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                         }
                       />
 
-                      <TemperatureSlider
+                      <Slider
                         label={t('Temperature')}
-                        onChangeTemperature={(temperature) =>
+                        onChange={(value: number) =>
                           handleUpdateConversation(selectedConversation, {
                             key: 'temperature',
-                            value: temperature,
+                            value: value,
                           })
                         }
+                        value={selectedConversation?.temperature || 1}
+                      />
+
+                      <Slider
+                        label={t('Top P')}
+                        onChange={(value: number) =>
+                          handleUpdateConversation(selectedConversation, {
+                            key: 'topP',
+                            value: value,
+                          })
+                        }
+                        value={selectedConversation?.topP || 1}
                       />
 
                       {selectedConversation?.files?.length > 0 && (
@@ -503,7 +532,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
               <>
                 <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200">
                   {t('Model')}: {selectedConversation?.model.name} | {t('Temp')}
-                  : {selectedConversation?.temperature} |
+                  : {selectedConversation?.temperature} | {t('Top P')}: {selectedConversation?.topP}|
                   <button
                     className="ml-2 cursor-pointer hover:opacity-50"
                     onClick={handleSettings}
@@ -520,7 +549,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                 {showSettings && (
                   <div className="flex flex-col space-y-10 md:mx-auto md:max-w-xl md:gap-6 md:py-3 md:pt-6 lg:max-w-2xl lg:px-0 xl:max-w-3xl">
                     <div className="flex h-full flex-col space-y-4 border-b border-neutral-200 p-4 dark:border-neutral-600 md:rounded-lg md:border">
-                    <ModelSelect type='chat' title='Chat Model' disabled={true}/>
+                      <ModelSelect type='chat' title='Chat Model' disabled={true}/>
                       <ModelSelect type='text-embedding' title='Embedding Model' disabled={true}/>
                       <SystemPrompt
                         conversation={selectedConversation!}
@@ -534,15 +563,15 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                         disabled={true}
                       />
 
-                      <TemperatureSlider
+                      <Slider
                         label={t('Temperature')}
-                        onChangeTemperature={(temperature) =>
-                          handleUpdateConversation(selectedConversation!, {
-                            key: 'temperature',
-                            value: temperature,
-                          })
-                        }
                         disabled={true}
+                        value={selectedConversation?.temperature || 1}
+                      />
+                      <Slider
+                        label={t('Top P')}
+                        disabled={true}
+                        value={selectedConversation?.topP || 1}
                       />
                       <EmbeddedFiles
                         files={selectedConversation?.files!}
@@ -579,8 +608,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             )}
           </div>
 
-          {(!selectedConversation?.model?.name?.includes('GPT') ||
-            apiKey) &&
+          {!validateApiKey() &&
             <ChatInput
             stopConversationRef={stopConversationRef}
             textareaRef={textareaRef}

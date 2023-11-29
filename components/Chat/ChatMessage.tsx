@@ -12,7 +12,7 @@ import { useTranslation } from 'next-i18next';
 
 import { updateConversation } from '@/utils/app/conversation';
 
-import { Message } from '@/types/chat';
+import { MultimodalMessage, getText } from '@/types/chat';
 
 import HomeContext from '@/pages/api/home/home.context';
 
@@ -27,22 +27,41 @@ import rehypeKatex from 'rehype-katex';
 
 
 export interface Props {
-  message: Message;
+  message: MultimodalMessage;
   messageIndex: number;
-  onEdit?: (editedMessage: Message) => void
+  onEdit?: (editedMessage: MultimodalMessage) => void
 }
 
 export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) => {
+  console.log('message', message)
+
+
+  const getNewMessageContent = (message: MultimodalMessage, newText: string) => {
+    if (typeof message.content === 'string') {
+      return newText
+    }
+
+    return message.content.map((content) => {
+      if (content.type === 'text') {
+        return {
+          ...content,
+          text: newText
+        }
+      }
+      return content
+    })
+  }
+
   const { t } = useTranslation('chat');
 
   const {
-    state: { selectedConversation, conversations, currentMessage, messageIsStreaming },
+    state: { selectedConversation, conversations, messageIsStreaming },
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
-  const [messageContent, setMessageContent] = useState(message.content);
+  const [messageContent, setMessageContent] = useState(getText(message));
   const [messagedCopied, setMessageCopied] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,9 +79,9 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
   };
 
   const handleEditMessage = () => {
-    if (message.content != messageContent) {
-      if (selectedConversation && onEdit) {
-        onEdit({ ...message, content: messageContent });
+    if (getText(message) != messageContent) {
+      if (selectedConversation && onEdit && messageContent) {
+        onEdit({ ...message, content: getNewMessageContent(message, messageContent) });
       }
     }
     setIsEditing(false);
@@ -106,8 +125,8 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
 
   const copyOnClick = () => {
     if (!navigator.clipboard) return;
-
-    navigator.clipboard.writeText(message.content).then(() => {
+    const text = getText(message);
+    text && navigator.clipboard.writeText(text).then(() => {
       setMessageCopied(true);
       setTimeout(() => {
         setMessageCopied(false);
@@ -116,8 +135,8 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
   };
 
   useEffect(() => {
-    setMessageContent(message.content);
-  }, [message.content]);
+    setMessageContent(getText(message))
+  }, [message.content])
 
 
   useEffect(() => {
@@ -203,14 +222,14 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                     <button
                       className="h-[40px] rounded-md bg-blue-500 px-4 py-1 text-sm font-medium text-white enabled:hover:bg-blue-600 disabled:opacity-50"
                       onClick={handleEditMessage}
-                      disabled={messageContent.trim().length <= 0}
+                      disabled={getText(message)!.trim().length <= 0}
                     >
                       {t('Save & Submit')}
                     </button>
                     <button
                       className="h-[40px] rounded-md border border-neutral-300 px-4 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
                       onClick={() => {
-                        setMessageContent(message.content);
+                        setMessageContent(getText(message)!);
                         setIsEditing(false);
                       }}
                     >
@@ -220,7 +239,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                 </div>
               ) : (
                 <div className="prose whitespace-pre-wrap dark:prose-invert flex-1">
-                  {message.content}
+                  {getText(message)}
                 </div>
               )}
 
@@ -295,7 +314,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                   },
                 }}
               >
-              {`${processMessageContent(message.content)}${
+              {`${processMessageContent(getText(message)!)}${
                 messageIsStreaming && messageIndex === (selectedConversation?.messages.length ?? 0) - 1 ? '▍' : ''
               }`}
               

@@ -1,4 +1,4 @@
-import { Message } from '@/types/chat';
+import { MultimodalMessage } from '@/types/chat';
 import { OpenAIModel } from '@/types/openai';
 
 import { AZURE_DEPLOYMENT_ID, OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '../app/const';
@@ -31,11 +31,13 @@ export const OpenAIStream = async (
   embeddingModel: OpenAIModel,
   prompt: string, 
   temperature: number,
+  topP: number,
   memoryType: string,
   key: string,
   serviceId: string|null,
   clientId: string|null,
   query: string,
+  image: string|null = null,
   googleAPIKey:string|null = null, 
   googleCSEId:string|null=null
 ) => {
@@ -54,13 +56,17 @@ export const OpenAIStream = async (
   console.log('googleCSEId', googleCSEId)
   // print the first 100 characters of the query
   console.log('query (first 100 characters):', query.substring(0,100))
+  console.log('image (first 100 characters):', image?.substring(0,100))
   if (firstMesaage && !shared) {
     // update the service if the conversation is not shared and this is the first message
     console.log('The first message, update the service')
     const url = `${OPENAI_API_HOST}/v1/services/${serviceId}?client_id=${clientId}`;
     const payload = JSON.stringify({model: model.id, "embedding_model": 
-      embeddingModel.id, prompt,
-      temperature, "memory_type": memoryType})
+      embeddingModel.id, 
+      prompt,
+      temperature, 
+      "top_p": topP,
+      "memory_type": memoryType})
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -106,7 +112,8 @@ export const OpenAIStream = async (
     },
     method: 'POST',
     body: JSON.stringify({
-      query
+      query,
+      image
     }),
   })
 
@@ -118,7 +125,6 @@ export const OpenAIStream = async (
     const result = await res.json();
     throw {statusCode: res.status, statusText: result.message || `${JSON.stringify(result)}`};
   }
-  console.log('Readable:', ReadableStream.toString());
   const stream = new ReadableStream({
     async start(controller) {
       let buffer = "";

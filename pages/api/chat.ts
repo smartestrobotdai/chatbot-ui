@@ -1,7 +1,7 @@
 import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
 import { OpenAIError, OpenAIStream } from '@/utils/server';
 
-import { ChatBody } from '@/types/chat';
+import { ChatBody, getImage, getText } from '@/types/chat';
 
 
 export const config = {
@@ -21,7 +21,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!clientId) {
       return new Response('Error', { status: 400 });
     }
-    const { model, embeddingModel, temperature, messages, key, prompt, 
+    const { model, embeddingModel, temperature, topP, messages, key, prompt, 
       memoryType } = 
       (await req.json()) as ChatBody;
     let promptToSend = prompt;
@@ -31,13 +31,19 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('messages', messages)
     // get the last message
     const lastMessage = messages[messages.length - 1];
-    const query = lastMessage.content
+    const textContent = getText(lastMessage)
+    const query = textContent
+
+    const image = getImage(lastMessage)
+    
+    
     if (!query) {
       return new Response('Error', { status: 400 });
     }
 
     const stream = await OpenAIStream(messages.length === 1, shared==='true', 
-      model, embeddingModel, prompt, temperature, memoryType, key, serviceId, clientId, query);
+      model, embeddingModel, prompt, temperature, topP,
+      memoryType, key, serviceId, clientId, query, image);
     return new Response(stream as ReadableStream<any>);
   } catch (error: any) {
     console.error(error);
