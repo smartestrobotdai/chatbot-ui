@@ -1,0 +1,67 @@
+import { FC, useContext, useState } from 'react';
+
+import { useTranslation } from 'next-i18next';
+
+import { DEFAULT_TEMPERATURE } from '@/utils/app/const';
+
+import HomeContext from '@/pages/api/home/home.context';
+
+interface Props {
+  label: string;
+  value: number;
+  onChange?: (value: number) => void;
+  disabled?: boolean;
+}
+
+export const Slider: FC<Props> = ({
+  label,
+  onChange,
+  value,
+  disabled = false
+}) => {
+  const {
+    state: { conversations },
+  } = useContext(HomeContext);
+  const lastConversation = conversations[conversations.length - 1];
+  const [temperature, setTemperature] = useState(
+    lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
+  );
+  const { t } = useTranslation('chat');
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(event.target.value);
+    setTemperature(newValue);
+    onChange && onChange(newValue);
+  };
+
+  return (
+    <div className="flex flex-col">
+      <label className="mb-2 text-left text-neutral-700 dark:text-neutral-400">
+        {label}
+      </label>
+      <span className="mt-2 mb-1 text-center text-neutral-900 dark:text-neutral-100">
+        {temperature.toFixed(1)}
+      </span>
+      <input
+        className="cursor-pointer"
+        type="range"
+        min={0}
+        max={1}
+        step={0.1}
+        value={value}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+      <ul className="w mt-2 pb-8 flex justify-between px-[24px] text-neutral-900 dark:text-neutral-100">
+        <li className="flex justify-center">
+          <span>{t('Precise')}</span>
+        </li>
+        <li className="flex justify-center">
+          <span>{t('Neutral')}</span>
+        </li>
+        <li className="flex justify-center">
+          <span>{t('Creative')}</span>
+        </li>
+      </ul>
+    </div>
+  );
+};
