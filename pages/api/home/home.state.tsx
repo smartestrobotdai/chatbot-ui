@@ -27,6 +27,7 @@ export interface HomeInitialState {
   messageError: boolean;
   enableOpenAI: boolean;
   enableAzureOpenAI: boolean;
+  password: string;
   searchTerm: string;
   defaultModelId: OpenAIModelID | undefined;
   defaultEmbeddingModelId: OpenAIModelID | undefined;
@@ -56,6 +57,7 @@ export const initialState: HomeInitialState = {
   messageError: false,
   enableOpenAI: true,
   enableAzureOpenAI: true,
+  password: '',
   searchTerm: '',
   defaultModelId: undefined,
   defaultEmbeddingModelId: undefined,

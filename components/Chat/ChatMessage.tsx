@@ -12,7 +12,7 @@ import { useTranslation } from 'next-i18next';
 
 import { updateConversation } from '@/utils/app/conversation';
 
-import { MultimodalMessage, getText } from '@/types/chat';
+import { MultimodalMessage, getImage, getText } from '@/types/chat';
 
 import HomeContext from '@/pages/api/home/home.context';
 
@@ -62,6 +62,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [messageContent, setMessageContent] = useState(getText(message));
+  const [messageImage, setMessageImage] = useState(getImage(message));
   const [messagedCopied, setMessageCopied] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -239,6 +240,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                 </div>
               ) : (
                 <div className="prose whitespace-pre-wrap dark:prose-invert flex-1">
+                  {messageImage && <img src={messageImage} alt="description" />}
                   {getText(message)}
                 </div>
               )}
@@ -343,4 +345,5 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
     </div>
   );
 });
+
 ChatMessage.displayName = 'ChatMessage';

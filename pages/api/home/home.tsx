@@ -41,7 +41,10 @@ import { HomeInitialState, initialState } from './home.state';
 
 import { v4 as uuidv4 } from 'uuid';
 import { MemoryType } from '@/types/memoryType';
-import { ModelSelect } from '@/components/Chat/ModelSelect';
+
+import { useCookies } from 'react-cookie';
+import Modal from 'react-modal';
+
 
 interface Props {
   serverSideApiKeyIsSet: boolean;
@@ -51,6 +54,7 @@ interface Props {
   defaultMemoryType: MemoryType;
   enableOpenAI: boolean;
   enableAzureOpenAI: boolean;
+  password: string;
 }
 
 const Home = ({
@@ -60,12 +64,16 @@ const Home = ({
   defaultEmbeddingModelId,
   defaultMemoryType,
   enableOpenAI,
-  enableAzureOpenAI
+  enableAzureOpenAI,
+  password,
 }: Props) => {
+
   const { t } = useTranslation('chat');
   const { getModels, getConversations } = useApiService();
   const { getModelsError } = useErrorService();
-  
+  const [cookies, setCookie] = useCookies(['password']);
+  const [showModal, setShowModal] = useState(false);
+  const [inputPassword, setInputPassword] = useState('');
   
   let initialiatedConversation = false
   const contextValue = useCreateReducer<HomeInitialState>({
@@ -102,6 +110,27 @@ const Home = ({
     },
     { enabled: true, refetchOnMount: false },
   );
+
+  useEffect(() => {
+    if (password && cookies.password !== password) {
+      setShowModal(true);
+    }
+  }, [cookies]);
+
+  const handlePasswordInput = (e: any) => {
+    setInputPassword(e.target.value);
+  };
+
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    if (inputPassword === password) {
+      setCookie('password', password, { path: '/' });
+      setShowModal(false);
+    } else {
+      alert('Wrong password!');
+    }
+  };
 
   useEffect(() => {
     if (data) dispatch({ field: 'models', value: data });
@@ -380,6 +409,10 @@ const Home = ({
   }, [enableAzureOpenAI, dispatch]);
 
   useEffect(() => {
+    dispatch({ field: 'password', value: password });
+  }, [password, dispatch]);
+
+  useEffect(() => {
     if (window.innerWidth < 640) {
       dispatch({ field: 'showChatbar', value: false });
     }
@@ -540,6 +573,7 @@ const Home = ({
   ])
 
   return (
+    
     <HomeContext.Provider
       value={{
         ...contextValue,
@@ -552,43 +586,64 @@ const Home = ({
         handleUpdateConversationMultiple
       }}
     >
-      <Head>
-        <title>Chatbot UI</title>
-        <meta name="description" content="ChatGPT but better." />
-        <meta
-          name="viewport"
-          content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
-        />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      {selectedConversation && (
-        <main
-          className={`flex h-screen w-screen flex-col text-sm text-white dark:text-white ${lightMode}`}
-        >
-          <div className="fixed top-0 w-full sm:hidden">
-            <Navbar
-              selectedConversation={selectedConversation}
-              onNewConversation={handleNewConversation}
-            />
+      <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
+        <Head>
+          <title>Chatbot UI</title>
+          <meta name="description" content="ChatGPT but better." />
+          <meta
+            name="viewport"
+            content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
+          />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+      
+        {password && (<Modal
+            isOpen={showModal}
+            contentLabel="Password Modal"
+            className="fixed inset-0 z-50 overflow-auto bg-smoke-light flex"
+          >
+          <div className="relative p-8 bg-white w-full max-w-md m-auto flex-col flex rounded-lg">
+            <form onSubmit={handleSubmit}>
+              <label>
+                Password:
+                <input type="password" value={inputPassword} onChange={handlePasswordInput} />
+              </label>
+              <button type="submit">Submit</button>
+            </form>
           </div>
 
-          <div className="flex h-full w-full pt-[48px] sm:pt-0">
-            <Chatbar />
-
-            <div className="flex flex-1">
-              <Chat stopConversationRef={stopConversationRef} />
+          </Modal>)
+        }
+        {selectedConversation && (
+          <main
+            className={`flex h-screen w-screen flex-col text-sm text-white dark:text-white ${lightMode}`}
+          >
+            <div className="fixed top-0 w-full sm:hidden">
+              <Navbar
+                selectedConversation={selectedConversation}
+                onNewConversation={handleNewConversation}
+              />
             </div>
 
-            <Promptbar />
-          </div>
-        </main>
-      )}
+            <div className="flex h-full w-full pt-[48px] sm:pt-0">
+              <Chatbar />
+
+              <div className="flex flex-1">
+                <Chat stopConversationRef={stopConversationRef} />
+              </div>
+
+              <Promptbar />
+            </div>
+          </main>
+        )}
+      </div>
     </HomeContext.Provider>
   );
 };
 export default Home;
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  const password = process.env.PASSWORD || ''
   const enableOpenAI = process.env.ENABLE_OPENAI === undefined || process.env.ENABLE_OPENAI === 'true'
   const enableAzureOpenAI = process.env.ENABLE_AZURE_OPENAI === undefined || process.env.ENABLE_AZURE_OPENAI === 'true'
 
@@ -601,7 +656,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       fallbackEmbeddingModelID;
 
   const defaultMemoryType = process.env.DEFAULT_MEMORY_TYPE || MemoryType.MEMORY_SUMMARIZER
-  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType, enableOpenAI, enableAzureOpenAI)
+  console.log('getServerSideProps', defaultModelId, defaultEmbeddingModelId, defaultMemoryType, enableOpenAI, enableAzureOpenAI, password)
   let serverSidePluginKeysSet = false;
 
   const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -620,6 +675,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
       serverSidePluginKeysSet,
       enableOpenAI,
       enableAzureOpenAI,
+      password,
       ...(await serverSideTranslations(locale ?? 'en', [
         'common',
         'chat',
