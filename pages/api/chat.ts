@@ -22,7 +22,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response('Error', { status: 400 });
     }
     const { model, embeddingModel, temperature, topP, messages, key, prompt, 
-      memoryType } = 
+      memoryType, allowedTools } = 
       (await req.json()) as ChatBody;
     let promptToSend = prompt;
     if (!promptToSend) {
@@ -43,7 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const stream = await OpenAIStream(messages.length === 1, shared==='true', 
       model, embeddingModel, prompt, temperature, topP,
-      memoryType, key, serviceId, clientId, query, image);
+      memoryType, allowedTools, key, serviceId, clientId, query, image);
     return new Response(stream as ReadableStream<any>);
   } catch (error: any) {
     console.error(error);

@@ -8,6 +8,7 @@ import {
   ReconnectInterval,
   createParser,
 } from 'eventsource-parser';
+import { Tool } from '@/types/tool';
 
 
 export class OpenAIError extends Error {
@@ -33,6 +34,7 @@ export const OpenAIStream = async (
   temperature: number,
   topP: number,
   memoryType: string,
+  allowedTools: Tool[],
   key: string,
   serviceId: string|null,
   clientId: string|null,
@@ -57,6 +59,7 @@ export const OpenAIStream = async (
   // print the first 100 characters of the query
   console.log('query (first 100 characters):', query.substring(0,100))
   console.log('image (first 100 characters):', image?.substring(0,100))
+  console.log('allowedTools', allowedTools.map((tool) => tool.name)) 
   if (firstMesaage && !shared) {
     // update the service if the conversation is not shared and this is the first message
     console.log('The first message, update the service')
@@ -66,7 +69,9 @@ export const OpenAIStream = async (
       prompt,
       temperature, 
       "top_p": topP,
-      "memory_type": memoryType})
+      "memory_type": memoryType,
+      "allowed_tools": allowedTools.map((tool) => tool.name),
+    })
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -87,6 +92,7 @@ export const OpenAIStream = async (
     }
   }
 
+  console.log('sending the chat request...')
   let url = `${OPENAI_API_HOST}/v1/services/${serviceId}/clients/${clientId}/chat`;
   if (googleAPIKey && googleCSEId) {
     url += '?search_enabled=true'
@@ -125,12 +131,12 @@ export const OpenAIStream = async (
     const result = await res.json();
     throw {statusCode: res.status, statusText: result.message || `${JSON.stringify(result)}`};
   }
+
+  console.log('receiving the chat response...', res)
   const stream = new ReadableStream({
     async start(controller) {
-      let buffer = "";
       for await (const chunk of res.body as any) {
-        buffer = decoder.decode(chunk);
-        controller.enqueue(encoder.encode(buffer));
+        controller.enqueue(chunk);
       }
       console.log('closed')
       controller.close();

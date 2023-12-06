@@ -9,6 +9,7 @@ import { GoogleBody, GoogleSource } from '@/types/google';
 import endent from 'endent';
 //import jsdom, { JSDOM } from 'jsdom';
 import { OpenAIStream } from '@/utils/server';
+import { getText } from '@/types/chat';
 
 
 
@@ -23,7 +24,8 @@ const handler = async (req: Request): Promise<Response> => {
       await req.json() as GoogleBody;
     console.log('messages', messages)
     const userMessage = messages[messages.length - 1];
-    const query = encodeURIComponent(userMessage.content.trim());
+    const text = getText(userMessage) || '';
+    const query = encodeURIComponent(text.trim());
 
     const requestUrl = new URL(req.url!, `http://${req.headers.get('host')}`);
     const serviceId = requestUrl.searchParams.get('serviceId');

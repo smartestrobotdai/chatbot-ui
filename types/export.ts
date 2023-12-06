@@ -1,4 +1,4 @@
-import { Conversation, Message } from './chat';
+import { Conversation, MultimodalMessage } from './chat';
 import { FolderInterface } from './folder';
 import { OpenAIModel } from './openai';
 import { Prompt } from './prompt';
@@ -14,7 +14,7 @@ export type LatestExportFormat = ExportFormatV4;
 interface ConversationV1 {
   id: number;
   name: string;
-  messages: Message[];
+  messages: MultimodalMessage[];
 }
 
 export type ExportFormatV1 = ConversationV1[];

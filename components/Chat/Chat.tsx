@@ -20,7 +20,7 @@ import {
 } from '@/utils/app/conversation';
 import { throttle } from '@/utils/data/throttle';
 
-import { ChatBody, Conversation, MultimodalMessage } from '@/types/chat';
+import { ChatBody, Conversation, MultimodalMessage, getText } from '@/types/chat';
 import { Plugin } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
@@ -35,7 +35,7 @@ import FormData from 'form-data';
 import { EmbeddedFiles } from './EmbeddedFiles';
 import { MemoryTypeSelect } from './MemoryTypeSelect';
 import { OpenAIModel } from '@/types/openai';
-
+import { AllowedToolSelector } from './AllowedToolSelector'; 
 
 
 interface Props {
@@ -50,6 +50,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
       selectedConversation,
       conversations,
       models,
+      tools,
       apiKey,
       azureApiKey,
       pluginKeys,
@@ -63,7 +64,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
-  const [currentMessage, setCurrentMessage] = useState<Message|MultimodalMessage>();
+  const [currentMessage, setCurrentMessage] = useState<MultimodalMessage>();
   const [autoScrollEnabled, setAutoScrollEnabled] = useState<boolean>(true);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [showScrollDownButton, setShowScrollDownButton] =
@@ -130,12 +131,6 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     }
   }
 
-  const getTextContentElement = (message: MultimodalMessage) => {
-    const textElement = message.content.filter((content) => content.type === 'text')[0]
-    console.log(textElement)
-    return textElement
-  }
-
   const handleSend = useCallback(
     async (message: MultimodalMessage, deleteCount = 0, plugin: Plugin | null = null) => {
       if (selectedConversation) {
@@ -175,6 +170,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
           temperature: updatedConversation.temperature,
           topP: updatedConversation.topP,
           memoryType: updatedConversation.memoryType,
+          allowedTools: updatedConversation.allowedTools,
         };
         const endpoint = getEndpoint(plugin);
         let body;
@@ -235,10 +231,9 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         //if (!plugin) {
         if (true) {
           if (updatedConversation.messages.length === 1) {
-            const content = getTextContentElement(message)
-
-            const customName =
-              content.text?.length > 30 ? content.text.substring(0, 30) + '...' : content.text;
+            const text = getText(message) || ''
+            const customName = 
+              text?.length > 30 ? text.substring(0, 30) + '...' : text;
             updatedConversation = {
               ...updatedConversation,
               name: customName,
@@ -477,7 +472,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100">
                   </div>
                   {models.length >= 0 && (
-                    <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600">
+                    <div className="flex h-full flex-col space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-600 z-10" style={{ maxHeight: '500px', overflowY: 'auto' }}>
                       <ModelSelect type='chat' title='Chat Model' setSelectedModel={setSelectedModel}/>
                       {validateApiKey() && <div className="flex">
                         <IconExclamationCircle className="mr-4"/>
@@ -524,6 +519,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                           />
                       )}
                       <MemoryTypeSelect/>
+                      <AllowedToolSelector tools={tools} />
+
                     </div>
                   )}
                 </div>

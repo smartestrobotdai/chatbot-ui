@@ -15,6 +15,8 @@ export interface ClearConversationsRequestProps {
   key: string;
 }
 
+export interface GetToolsRequestProps {}
+
 const useApiService = () => {
   const fetchService = useFetch();
 
@@ -48,7 +50,6 @@ const useApiService = () => {
   );
 
   const getConversations = useCallback(
-    
     (params: GetConversationsRequestProps, signal?: AbortSignal) => {
       let clientId = getClientId()
       return fetchService.get<GetConversationsRequestProps>(`/api/services?clientId=${clientId}`, {
@@ -61,9 +62,23 @@ const useApiService = () => {
     [fetchService],
   );
 
+  const getTools = useCallback(
+    (params: GetToolsRequestProps, signal?: AbortSignal) => {
+      return fetchService.get<GetToolsRequestProps>(`/api/tools`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal,
+      });
+    },
+    [fetchService],
+  );
+
+
   return {
     getModels,
     getConversations,
+    getTools
   };
 };
 

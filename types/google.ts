@@ -1,4 +1,4 @@
-import { ChatBody, Message } from './chat';
+import { ChatBody, MultimodalMessage } from './chat';
 
 export interface GoogleBody extends ChatBody {
   googleAPIKey: string;
@@ -6,7 +6,7 @@ export interface GoogleBody extends ChatBody {
 }
 
 export interface GoogleResponse {
-  message: Message;
+  message: MultimodalMessage;
 }
 
 export interface GoogleSource {

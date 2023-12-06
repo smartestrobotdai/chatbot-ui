@@ -1,6 +1,7 @@
 import { Roboto_Flex } from 'next/font/google';
 import { MemoryType } from './memoryType';
 import { OpenAIModel } from './openai';
+import { Tool } from './tool';
 
 export interface ContentElement {
   type: 'text' | 'image';
@@ -45,6 +46,7 @@ export interface ChatBody {
   temperature: number;
   topP: number;
   memoryType: MemoryType;
+  allowedTools: Tool[]
 }
 
 export interface Conversation {
@@ -60,4 +62,5 @@ export interface Conversation {
   shared: boolean;
   files: string[];
   memoryType: MemoryType;
+  allowedTools: Tool[]
 }

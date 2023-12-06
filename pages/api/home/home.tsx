@@ -69,7 +69,7 @@ const Home = ({
 }: Props) => {
 
   const { t } = useTranslation('chat');
-  const { getModels, getConversations } = useApiService();
+  const { getModels, getConversations, getTools } = useApiService();
   const { getModelsError } = useErrorService();
   const [cookies, setCookie] = useCookies(['password']);
   const [showModal, setShowModal] = useState(false);
@@ -111,6 +111,37 @@ const Home = ({
     { enabled: true, refetchOnMount: false },
   );
 
+
+  const { data: toolData, error: toolError, refetch: toolRefetch } = useQuery(
+    ['GetTools'],
+    ({ signal }) => {
+      //if (!apiKey && !serverSideApiKeyIsSet) return null;
+
+      return getTools(
+        {},
+        signal,
+      );
+    },
+    { enabled: true, refetchOnMount: false },
+  );
+
+
+  const { data: convData, error: convError, refetch: convRefetch } = useQuery(
+    ['GetConversations', apiKey, serverSideApiKeyIsSet],
+    ({ signal }) => {
+      //if (!apiKey && !serverSideApiKeyIsSet) return null;
+
+      return getConversations(
+        {
+          key: apiKey,
+        },
+        signal,
+      );
+    },
+    { enabled: true, refetchOnMount: false },
+  );
+  
+
   useEffect(() => {
     if (password && cookies.password !== password) {
       setShowModal(true);
@@ -137,27 +168,21 @@ const Home = ({
   }, [data, dispatch]);
 
   useEffect(() => {
+    if (convData) dispatch({ field: 'conversations', value: combineConversations(conversations, convData)});
+  }, [convData, dispatch]);
+
+  useEffect(() => {
+    if (toolData) dispatch({ field: 'tools', value: toolData});
+  }, [toolData, dispatch]);
+
+  useEffect(() => {
     dispatch({ field: 'modelError', value: getModelsError(error) });
   }, [dispatch, error, getModelsError]);
 
   // FETCH MODELS ----------------------------------------------
 
 
-  const { data: data2, error: error2, refetch: refetch2 } = useQuery(
-    ['GetConversations', apiKey, serverSideApiKeyIsSet],
-    ({ signal }) => {
-      //if (!apiKey && !serverSideApiKeyIsSet) return null;
 
-      return getConversations(
-        {
-          key: apiKey,
-        },
-        signal,
-      );
-    },
-    { enabled: true, refetchOnMount: false },
-  );
-  
   const combineConversations = (conv1: Conversation[], conv2Raw: any) => {
     function getEnumKeyByValue(value: string): keyof typeof OpenAIModelID | undefined {
       return Object.keys(OpenAIModelID).find(key => OpenAIModelID[key as keyof typeof OpenAIModelID] === value) as keyof typeof OpenAIModelID | undefined;
@@ -206,11 +231,7 @@ const Home = ({
     return unique
   }
 
-  useEffect(() => {
-    console.log('data2 changed', data2)
-    console.log('current conversation:', conversations)
-    if (data2) dispatch({ field: 'conversations', value: combineConversations(conversations, data2)});
-  }, [data2, dispatch]);
+
 
   const handleSelectConversation = (conversation: Conversation) => {
     dispatch({
@@ -337,7 +358,8 @@ const Home = ({
 
       temperature: lastConversation?.temperature ?? Number(DEFAULT_TEMPERATURE),
       folderId: null,
-      shared: false
+      shared: false,
+      allowedTools: []
     };
 
     const updatedConversations = [...conversations, newConversation];

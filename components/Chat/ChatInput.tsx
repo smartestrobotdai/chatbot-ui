@@ -401,8 +401,8 @@ export const ChatInput = ({
           )}
         <div className="relative top-0 left-0 flex flex-col right-0 mx-auto items-center w-full ">
           {imageThumbnails.length > 0 && (<div className="relative top-0 left-0 right-0 mx-auto items-center w-full h-16">
-            {imageThumbnails.map((src: any) => (
-              <ImageThumbnail src={src} onDelete={deleteThumbnail} />
+            {imageThumbnails.map((src: any, index: number) => (
+              <ImageThumbnail key={index} src={src} onDelete={deleteThumbnail} />
             ))}
           </div>)}
           <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">

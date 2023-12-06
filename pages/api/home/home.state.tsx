@@ -5,6 +5,7 @@ import { MemoryType } from '@/types/memoryType';
 import { OpenAIModel, OpenAIModelID } from '@/types/openai';
 import { PluginKey } from '@/types/plugin';
 import { Prompt } from '@/types/prompt';
+import { Tool } from '@/types/tool';
 
 export interface HomeInitialState {
   apiKey: string;
@@ -15,6 +16,7 @@ export interface HomeInitialState {
   messageIsStreaming: boolean;
   modelError: ErrorMessage | null;
   models: OpenAIModel[];
+  tools: Tool[];
   folders: FolderInterface[];
   conversations: Conversation[];
   selectedConversation: Conversation | undefined;
@@ -45,6 +47,7 @@ export const initialState: HomeInitialState = {
   messageIsStreaming: false,
   modelError: null,
   models: [],
+  tools: [],
   folders: [],
   conversations: [],
   selectedConversation: undefined,
