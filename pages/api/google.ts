@@ -20,7 +20,7 @@ export const config = {
 const handler = async (req: Request): Promise<Response> => {
   try {
     const { messages, key, model, prompt, embeddingModel, temperature, topP, memoryType,
-        googleAPIKey, googleCSEId } =
+      allowedTools, googleAPIKey, googleCSEId } =
       await req.json() as GoogleBody;
     console.log('messages', messages)
     const userMessage = messages[messages.length - 1];
@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
     const clientId = requestUrl.searchParams.get('clientId');
     const shared = requestUrl.searchParams.get('shared');
     const stream = await OpenAIStream(messages.length === 1, shared==='true', 
-      model, embeddingModel, prompt, temperature, topP, memoryType, key, serviceId, clientId, 
+      model, embeddingModel, prompt, temperature, topP, memoryType, allowedTools, key, serviceId, clientId, 
       query, googleAPIKey, googleCSEId);
 
     return new Response(stream as ReadableStream<any>);
