@@ -56,6 +56,8 @@ export const ConversationComponent = ({ conversation }: Props) => {
 
   const handleRename = (conversation: Conversation) => {
     if (renameValue.trim().length > 0) {
+      // TODO: update the conversation name on the server
+      
       handleUpdateConversation(conversation, {
         key: 'name',
         value: renameValue,

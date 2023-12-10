@@ -1,6 +1,6 @@
 import HomeContext from '@/pages/api/home/home.context';
 import { Tool } from '@/types/tool';
-import React, { FC, useState, useContext } from 'react';
+import React, { FC, useState, useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface AllowedToolSelectorProps {
@@ -26,14 +26,13 @@ export const AllowedToolSelector: FC<AllowedToolSelectorProps> = ({
   const [selectedTools, setSelectedTools] = useState<Tool[]>([]);
 
   const handleCheckboxChange = (tool: Tool) => {
-    console.log('0000000')
     if (!selectedConversation) return;
-    console.log('1111111')
     const updatedSelectedTools = selectedTools.includes(tool)
       ? selectedTools.filter((selectedOption) => selectedOption !== tool)
       : [...selectedTools, tool];
 
     setSelectedTools(updatedSelectedTools);
+    console.log('updatedSelectedTools', updatedSelectedTools)
     handleUpdateConversationMultiple(selectedConversation,
       [{
         key: 'allowedTools',
@@ -41,6 +40,11 @@ export const AllowedToolSelector: FC<AllowedToolSelectorProps> = ({
       }]
     )
   };
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    setSelectedTools(selectedConversation.allowedTools);
+  })
 
   return (
     <div className="flex flex-col">
@@ -54,7 +58,7 @@ export const AllowedToolSelector: FC<AllowedToolSelectorProps> = ({
               type="checkbox"
               className="mr-2"
               value={tool.name}
-              checked={selectedTools.includes(tool)}
+              checked={selectedTools && selectedTools.includes(tool)}
               onChange={() => handleCheckboxChange(tool)}
               disabled={disabled}
             />

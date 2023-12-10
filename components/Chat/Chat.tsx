@@ -489,7 +489,6 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                           })
                         }
                       />
-
                       <Slider
                         label={t('Temperature')}
                         onChange={(value: number) =>
@@ -575,6 +574,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                         onClear={onClearEmbeddings}
                       />
                       <MemoryTypeSelect disabled={true}/>
+                      <AllowedToolSelector tools={tools} disabled={true}/>
                     </div>
                   </div>
                 )}
