@@ -2,6 +2,12 @@ export const DEFAULT_SYSTEM_PROMPT =
   process.env.NEXT_PUBLIC_DEFAULT_SYSTEM_PROMPT ||
   "You are a large language model. Follow the user's instructions carefully. Respond as much as you can.";
 
+  export const DEFAULT_SYSTEM_PROMPT_IMAGE =
+  process.env.NEXT_PUBLIC_DEFAULT_SYSTEM_PROMPT_IMAGE ||
+  "You are a large image model. Answer questions about the image if it is present.";
+
+
+
 export const DEFAULT_TOP_P = 
   process.env.DEFAULT_TOP_P || "1";
 

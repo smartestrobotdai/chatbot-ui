@@ -6,6 +6,7 @@ export interface OpenAIModel {
   maxLength: number; // maximum length of a message
   tokenLimit: number;
   type: string;
+  imageSupport: boolean;
 }
 
 export enum OpenAIModelID {
@@ -21,40 +22,40 @@ export enum OpenAIModelID {
 export const fallbackModelID = OpenAIModelID.GPT_3_5;
 export const fallbackEmbeddingModelID = OpenAIModelID.ADA_002;
 
-export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
-  [OpenAIModelID.GPT_3_5]: {
-    id: OpenAIModelID.GPT_3_5,
-    name: 'GPT-3.5',
-    maxLength: 12000,
-    tokenLimit: 4000,
-    type: 'chat'
-  },
-  [OpenAIModelID.GPT_3_5_AZ]: {
-    id: OpenAIModelID.GPT_3_5_AZ,
-    name: 'GPT-3.5',
-    maxLength: 12000,
-    tokenLimit: 4000,
-    type: 'chat'
-  },
-  [OpenAIModelID.GPT_4]: {
-    id: OpenAIModelID.GPT_4,
-    name: 'GPT-4',
-    maxLength: 24000,
-    tokenLimit: 8000,
-    type: 'chat'
-  },
-  [OpenAIModelID.GPT_4_32K]: {
-    id: OpenAIModelID.GPT_4_32K,
-    name: 'GPT-4-32K',
-    maxLength: 96000,
-    tokenLimit: 32000,
-    type: 'chat'
-  },
-  [OpenAIModelID.ADA_002]: {
-    id: OpenAIModelID.ADA_002,
-    name: 'TEXT-EMBEDDING-ADA-002',
-    maxLength: 96000,
-    tokenLimit: 32000,
-    type: 'text-embedding'
-  },
-};
+// export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
+//   [OpenAIModelID.GPT_3_5]: {
+//     id: OpenAIModelID.GPT_3_5,
+//     name: 'GPT-3.5',
+//     maxLength: 12000,
+//     tokenLimit: 4000,
+//     type: 'chat'
+//   },
+//   [OpenAIModelID.GPT_3_5_AZ]: {
+//     id: OpenAIModelID.GPT_3_5_AZ,
+//     name: 'GPT-3.5',
+//     maxLength: 12000,
+//     tokenLimit: 4000,
+//     type: 'chat'
+//   },
+//   [OpenAIModelID.GPT_4]: {
+//     id: OpenAIModelID.GPT_4,
+//     name: 'GPT-4',
+//     maxLength: 24000,
+//     tokenLimit: 8000,
+//     type: 'chat'
+//   },
+//   [OpenAIModelID.GPT_4_32K]: {
+//     id: OpenAIModelID.GPT_4_32K,
+//     name: 'GPT-4-32K',
+//     maxLength: 96000,
+//     tokenLimit: 32000,
+//     type: 'chat'
+//   },
+//   [OpenAIModelID.ADA_002]: {
+//     id: OpenAIModelID.ADA_002,
+//     name: 'TEXT-EMBEDDING-ADA-002',
+//     maxLength: 96000,
+//     tokenLimit: 32000,
+//     type: 'text-embedding'
+//   },
+//};

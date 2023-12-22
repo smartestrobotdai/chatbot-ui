@@ -3,7 +3,9 @@ import {
   IconBolt,
   IconBrain,
   IconBrandGoogle,
+  IconPin,
   IconPlayerStop,
+  IconPlus,
   IconRepeat,
   IconSend,
   IconSpace
@@ -115,7 +117,7 @@ export const ChatInput = ({
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    input.accept = 'application/pdf,image/jpeg,image/png';
+    input.accept = 'application/pdf';
     input.onchange = (e: any) => {
       const files = e.target.files;
       if (files) {
@@ -123,9 +125,40 @@ export const ChatInput = ({
           if (file.type === 'application/pdf') {
             // Process PDF file
             onEmbed([file]);
-          } else if (file.type === 'image/jpeg' || file.type === 'image/png') {
+          } else {
+            alert(t('File type not supported'));
+            return
+          }
+        });
+        (files)
+      }
+    }
+    input.click()
+  }
+
+  const handleAttach = () => {
+    console.log('handleAttach')
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'image/jpeg,image/png'
+
+    // Check if current selected model supports image attachment
+    if (!selectedConversation?.model.imageSupport) {
+      alert(t('Model does not support image attachment'));
+      return;
+    }
+
+    input.onchange = (e: any) => {
+      const files = e.target.files;
+      if (files) {
+        Array.from(files).forEach((file: any) => {
+          if (file.type === 'image/jpeg' || file.type === 'image/png') {
             // Process image file
             processImage(file);
+          } else {
+            alert(t('File type not supported'));
+            return
           }
         });
         (files)
@@ -406,50 +439,28 @@ export const ChatInput = ({
             ))}
           </div>)}
           <div className="relative mx-2 flex w-full flex-grow flex-col rounded-md border border-black/10 bg-white shadow-[0_0_10px_rgba(0,0,0,0.10)] dark:border-gray-900/50 dark:bg-[#40414F] dark:text-white dark:shadow-[0_0_15px_rgba(0,0,0,0.10)] sm:mx-4">
-            <button
-              className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
-              onClick={() => setShowPluginSelect(!showPluginSelect)}
-              onKeyDown={(e) => {}}
-            >
-              {plugin ? <IconBrandGoogle size={20} /> : <IconBolt size={20} />}
-            </button>
-
-            {showPluginSelect && (
-              <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">
-                <PluginSelect
-                  plugin={plugin}
-                  pluginKeys={pluginKeys}
-                  onKeyDown={(e: any) => {
-                    if (e.key === 'Escape') {
-                      e.preventDefault();
-                      setShowPluginSelect(false);
-                      textareaRef.current?.focus();
-                    }
-                  }}
-                  onPluginChange={(plugin: Plugin) => {
-                    setPlugin(plugin);
-                    setShowPluginSelect(false);
-
-                    if (textareaRef && textareaRef.current) {
-                      textareaRef.current.focus();
-                    }
-                  }}
-                />
-              </div>
-            )}
             {selectedConversation?.folderId !== 'predefined-conversations' && 
               <button
-                className="absolute left-8 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+                className="absolute left-2 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
                 style={{ fontSize: '1.2rem', width: '24px', height: '24px' }}
                 onClick={handleEmbed}
                 title="Embed files"
               > 
-                <span>+</span>
+                <IconPlus size={18} />
               </button>
             }
+            <button
+                className="absolute left-8 top-2 rounded-sm p-1 text-neutral-800 opacity-60 hover:bg-neutral-200 hover:text-neutral-900 dark:bg-opacity-50 dark:text-neutral-100 dark:hover:text-neutral-200"
+                style={{ fontSize: '1.2rem', width: '24px', height: '24px' }}
+                onClick={handleAttach}
+                title="Attach files"
+              > 
+                <IconPin size={18} />
+            </button>
+
             <textarea
               ref={textareaRef}
-              className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pr-16 pl-14 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-14"
+              className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pr-16 pl-16 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-16"
               style={{
                 resize: 'none',
                 bottom: `${textareaRef?.current?.scrollHeight}px`,

@@ -15,7 +15,7 @@ import {
   cleanConversationHistory,
   cleanSelectedConversation,
 } from '@/utils/app/clean';
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE, DEFAULT_TOP_P } from '@/utils/app/const';
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT_IMAGE, DEFAULT_TEMPERATURE, DEFAULT_TOP_P } from '@/utils/app/const';
 import {
   saveConversation,
   saveConversations,
@@ -44,6 +44,7 @@ import { MemoryType } from '@/types/memoryType';
 
 import { useCookies } from 'react-cookie';
 import Modal from 'react-modal';
+import { ModelSelect } from '@/components/Chat/ModelSelect';
 
 
 interface Props {
@@ -361,6 +362,11 @@ const Home = ({
       shared: false,
       allowedTools: []
     };
+
+    // update the prompt if the image model is selected
+    if (newConversation.model.imageSupport) {
+      newConversation.prompt = DEFAULT_SYSTEM_PROMPT_IMAGE;
+    }
 
     const updatedConversations = [...conversations, newConversation];
 

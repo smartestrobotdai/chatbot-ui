@@ -7,6 +7,8 @@ import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
 import { Conversation } from '@/types/chat';
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT_IMAGE } from '@/utils/app/const';
+import { KeyValuePair } from '@/types/data';
 
 interface ModelSelectProps {
   setSelectedModel?: (model: OpenAIModel) => void; // This indicates setSelectedModel is an optional function prop.
@@ -42,16 +44,30 @@ export const ModelSelect:FC<ModelSelectProps>  = ({ setSelectedModel, disabled =
       (model) => model.id === e.target.value,
     ) as OpenAIModel
 
+    let prompt = DEFAULT_SYSTEM_PROMPT
+    if (model.imageSupport) {
+      prompt = DEFAULT_SYSTEM_PROMPT_IMAGE
+    }
+
     if (model !== selectedConversation?.[keyName]) {
+      let keys_to_update: KeyValuePair[] = [{
+        key: keyName,
+        value: model
+      }]
+
+      if (keyName === 'model') {
+        keys_to_update.push({
+          key: 'prompt',
+          value: prompt
+        })
+      }
+
       //setSelectedModel && setSelectedModel(model)
       if (selectedConversation) {
-        handleUpdateConversationMultiple(selectedConversation, [{
-            key: keyName,
-            value: model
-          },
-        ]);
+        handleUpdateConversationMultiple(selectedConversation, keys_to_update);
       }
     }
+
     setSelectedModel && setSelectedModel(model)
   };
 

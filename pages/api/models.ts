@@ -56,6 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
             name: model.name,
             type: model.type,
             tokenLimit: model.max_tokens,
+            imageSupport: model.image_support
           };
       })
       .filter(Boolean);
