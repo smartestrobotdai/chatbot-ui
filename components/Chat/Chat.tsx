@@ -95,9 +95,23 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         const formData = new FormData();
         formData.append('file', filePath);
         
+        let headers = {}
+        const selectedEmbeddingModelName = selectedConversation?.embeddingModel.id
+        console.log('selectedEmbeddingModel:', selectedEmbeddingModelName)
+        if (selectedEmbeddingModelName?.startsWith('azure-')) {
+          headers = {
+            'Authorization': `Bearer ${azureApiKey}`,
+          }
+        } else if (selectedEmbeddingModelName?.startsWith('text-embedding-ada')) {
+          headers = {
+            'Authorization': `Bearer ${apiKey}`,
+          }
+        }
+
         // Send the file to the server
         const response = await fetch(url, {
           method: 'POST',
+          headers: headers,
           body: formData as any,
         });
 

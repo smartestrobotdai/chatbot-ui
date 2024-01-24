@@ -66,6 +66,10 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
   const [messagedCopied, setMessageCopied] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  console.log('message', message)
+  console.log('messageImage', messageImage)
+  
+
 
   const toggleEditing = () => {
     setIsEditing(!isEditing);
@@ -146,6 +150,10 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    setMessageImage(getImage(message))
+  }, [message]);
   
   const unescapeUnicode = (str: any) => {
     return str.replace(/\\u[\dA-F]{4}/gi, (match: any) => {

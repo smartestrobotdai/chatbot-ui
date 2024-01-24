@@ -34,6 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
       method: 'POST',
       headers: {
         'Content-Type': req.headers.get('Content-Type') || '',
+        'Authorization': req.headers.get('Authorization') || '',
       },
       body: req.body
     });

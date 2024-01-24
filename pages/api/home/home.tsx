@@ -240,6 +240,8 @@ const Home = ({
       value: conversation,
     });
 
+    console.log('handleSelectConversation')
+    console.log(conversation.messages)
     saveConversation(conversation);
   };
 
@@ -324,8 +326,8 @@ const Home = ({
         'Content-Type': 'application/json',
         },
         body: JSON.stringify({name: 'New Conversation',
-         model: defaultModelId, 
-         embeddingModel: defaultEmbeddingModelId}),
+         model: lastConversation?.model.id || defaultModelId, 
+         embeddingModel: lastConversation?.embeddingModel.id || defaultEmbeddingModelId}),
     })
     const data = await response.json()
     console.log('data:', data)
