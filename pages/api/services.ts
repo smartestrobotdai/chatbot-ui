@@ -43,22 +43,29 @@ const handler = async (req: Request): Promise<Response> => {
   }
   try {
     let body = null
-    let isPost = false
-    if (req.method === 'POST') {
+    let isPostOrPut = false
+    if (req.method === 'POST' || req.method === 'PUT') {
       body = await req.json()
-      isPost = true
+      isPostOrPut = true
     }
     
     let url = `${OPENAI_API_HOST}/v1/services`;
     const requestUrl = new URL(req.url)
+    const serviceId = requestUrl.searchParams.get('serviceId');
+    if (serviceId) {
+      url += `/${serviceId}`
+    }
     const clientId = requestUrl.searchParams.get('clientId');
     if (clientId) {
       url += `?client_id=${clientId}`
     }
+
+    console.log('Services Handler: ', url)
+    console.log(JSON.stringify(body))
     // Forward the request to your Python backend
     const pythonBackendResponse = await fetch(url, {
       method: req.method,
-      body: isPost ? JSON.stringify(body) : null,
+      body: isPostOrPut ? JSON.stringify(body) : null,
       headers: {'Content-Type': 'application/json'},
     });
 

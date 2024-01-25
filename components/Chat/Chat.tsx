@@ -36,6 +36,7 @@ import { EmbeddedFiles } from './EmbeddedFiles';
 import { MemoryTypeSelect } from './MemoryTypeSelect';
 import { OpenAIModel } from '@/types/openai';
 import { AllowedToolSelector } from './AllowedToolSelector'; 
+import { OPENAI_API_HOST } from '@/utils/app/const';
 
 
 interface Props {
@@ -79,16 +80,51 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const updateService = async (serviceId: string, clientId: string) => {
+    const urlService = `api/services?serviceId=${serviceId}&clientId=${clientId}`;
+    const payload = JSON.stringify({model: selectedConversation?.model.id, "embedding_model": 
+      selectedConversation?.embeddingModel.id, 
+      prompt: selectedConversation?.prompt,
+      temperature: selectedConversation?.temperature,
+      "top_p": selectedConversation?.topP,
+      "memory_type": selectedConversation?.memoryType,
+      "allowed_tools": selectedConversation?.allowedTools.map((tool) => tool.name)
+    })
+
+    const response = await fetch(urlService, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: payload,
+    })
+
+    if (response.status !== 200) {
+      const errorText = await response.text();
+      console.error(
+        `OpenAI API returned an error ${
+          response.status
+        }: ${errorText}`,
+      )
+      
+      throw ({statusCode: response.status, statusText: errorText})
+    }
+  }
+
   const handleEmbed = async (files: File[]) => {
     // TODO: send the files to the server in multipart format one by one
     // call the endpint 'api/embed?serviceId=${selectedConversation.id}&clientId=${clientId}'
     // and send the files in the body
     try {
-      homeDispatch({ field: 'loading', value: true });
-      homeDispatch({ field: 'messageIsStreaming', value: true });
+      homeDispatch({ field: 'loading', value: true })
+      homeDispatch({ field: 'messageIsStreaming', value: true })
       const serviceId = selectedConversation?.id;
       const clientId = getClientId()
-      const url = `api/embed?serviceId=${serviceId}&clientId=${clientId}`;
+      if (isEditableConversation()) {
+        await updateService(serviceId!, clientId)
+      }
+
+      const url = `api/embed?serviceId=${serviceId}&clientId=${clientId}`
       let newEmbeddedFiles: string[] = []
       for (const filePath of files) {
         
@@ -175,6 +211,11 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
         console.log('azureapikey', azureApiKey)
         const key = updatedConversation.model.name.includes('AZURE') ? azureApiKey : apiKey;
         console.log('key', key)
+
+        if (isEditableConversation()) {
+          await updateService(selectedConversation.id, getClientId())
+        }
+      
         const chatBody: ChatBody = {
           model: updatedConversation.model,
           embeddingModel: updatedConversation.embeddingModel,
@@ -472,6 +513,10 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
     return ''
   }
 
+  function isEditableConversation() {
+    return selectedConversation && selectedConversation.messages?.length === 0 && selectedConversation.files?.length === 0 && !selectedConversation.shared
+  }
+
   return (
     <div className="relative flex-1 overflow-hidden bg-white dark:bg-[#343541]">
         <>
@@ -480,7 +525,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ref={chatContainerRef}
             onScroll={handleScroll}
           >
-            {selectedConversation?.messages?.length === 0 ? (
+            {selectedConversation?.messages?.length === 0 && selectedConversation?.files?.length === 0 ? (
               <>
                 <div className="mx-auto flex flex-col space-y-5 md:space-y-10 px-3 pt-2 md:pt-6 sm:max-w-[600px]">
                   <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100">
@@ -538,7 +583,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   )}
                 </div>
               </>
-            ) : (
+            ) : ((selectedConversation && selectedConversation.model) && (
               <>
                 <div className="sticky top-0 z-10 flex justify-center border border-b-neutral-300 bg-neutral-100 py-2 text-sm text-neutral-500 dark:border-none dark:bg-[#444654] dark:text-neutral-200">
                   {t('Model')}: {selectedConversation?.model.name} | {t('Temp')}
@@ -616,7 +661,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                   ref={messagesEndRef}
                 />
               </>
-            )}
+            ))}
           </div>
 
           {!validateApiKey() &&

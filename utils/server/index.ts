@@ -60,37 +60,37 @@ export const OpenAIStream = async (
   console.log('query (first 100 characters):', query.substring(0,100))
   console.log('image (first 100 characters):', image?.substring(0,100))
   console.log('allowedTools', allowedTools.map((tool) => tool.name)) 
-  if (firstMesaage && !shared) {
-    // update the service if the conversation is not shared and this is the first message
-    console.log('The first message, update the service')
-    const url = `${OPENAI_API_HOST}/v1/services/${serviceId}?client_id=${clientId}`;
-    const payload = JSON.stringify({model: model.id, "embedding_model": 
-      embeddingModel.id, 
-      prompt,
-      temperature, 
-      "top_p": topP,
-      "memory_type": memoryType,
-      "allowed_tools": allowedTools.map((tool) => tool.name),
-    })
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: payload,
-    })
+  // if (firstMesaage && !shared) {
+  //   // update the service if the conversation is not shared and this is the first message
+  //   console.log('The first message, update the service')
+  //   const url = `${OPENAI_API_HOST}/v1/services/${serviceId}?client_id=${clientId}`;
+  //   const payload = JSON.stringify({model: model.id, "embedding_model": 
+  //     embeddingModel.id, 
+  //     prompt,
+  //     temperature, 
+  //     "top_p": topP,
+  //     "memory_type": memoryType,
+  //     "allowed_tools": allowedTools.map((tool) => tool.name),
+  //   })
+  //   const response = await fetch(url, {
+  //     method: 'PUT',
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //     },
+  //     body: payload,
+  //   })
 
-    if (response.status !== 200) {
-      const errorText = await response.text();
-      console.error(
-        `OpenAI API returned an error ${
-          response.status
-        }: ${errorText}`,
-      );
+  //   if (response.status !== 200) {
+  //     const errorText = await response.text();
+  //     console.error(
+  //       `OpenAI API returned an error ${
+  //         response.status
+  //       }: ${errorText}`,
+  //     );
       
-      throw ({statusCode: response.status, statusText: errorText});
-    }
-  }
+  //     throw ({statusCode: response.status, statusText: errorText});
+  //   }
+  // }
 
   console.log('sending the chat request...')
   let url = `${OPENAI_API_HOST}/v1/services/${serviceId}/clients/${clientId}/chat`;
