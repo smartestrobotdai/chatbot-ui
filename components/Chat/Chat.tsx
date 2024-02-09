@@ -525,7 +525,8 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
             ref={chatContainerRef}
             onScroll={handleScroll}
           >
-            {selectedConversation?.messages?.length === 0 && selectedConversation?.files?.length === 0 ? (
+            {selectedConversation?.messages?.length === 0 &&
+              selectedConversation?.files?.length === 0 && !loading ? (
               <>
                 <div className="mx-auto flex flex-col space-y-5 md:space-y-10 px-3 pt-2 md:pt-6 sm:max-w-[600px]">
                   <div className="text-center text-3xl font-semibold text-gray-800 dark:text-gray-100">
@@ -556,7 +557,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                             value: value,
                           })
                         }
-                        value={selectedConversation?.temperature || 1}
+                        value={selectedConversation?.temperature ?? 1}
                       />
 
                       <Slider
@@ -567,7 +568,7 @@ export const Chat = memo(({ stopConversationRef }: Props) => {
                             value: value,
                           })
                         }
-                        value={selectedConversation?.topP || 1}
+                        value={selectedConversation?.topP ?? 1}
                       />
 
                       {selectedConversation?.files?.length > 0 && (

@@ -169,12 +169,6 @@ export const Chatbar = () => {
   const handleDeleteConversation = async (conversation: Conversation) => {
     // check the number of conversations in the folder
     // the user cannot delete the last conversation in a folder
-    const nConversations = conversations.length
-    if (nConversations === 1) {
-      alert('You cannot delete the last conversation in a folder')
-      return
-    }
-    
     const serviceId = conversation.id
     const clientId = getClientId()
     const url = `api/services?serviceId=${serviceId}&client_id=${clientId}`;
